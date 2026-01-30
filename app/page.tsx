@@ -459,8 +459,8 @@ export default function Home() {
   const calculateTotals = () => {
     if (!selectedBoat) return { agent: 0, client: 0, extras: 0, catering: 0, drinks: 0, toys: 0, services: 0, transfer: 0, fees: 0, total: 0 };
 
-    const baseAgent = selectedBoat.calculated_agent_total || selectedBoat.base_price;
-    const baseClient = selectedBoat.calculated_total;
+    const baseAgent = Number(selectedBoat.calculated_agent_total) || Number(selectedBoat.base_price) || 0;
+    const baseClient = Number(selectedBoat.calculated_total) || Number(selectedBoat.base_price) || 0;
 
     // Extras from boat options
     const extrasTotal = selectedExtras.reduce((sum, e) => sum + (e.price * e.quantity), 0);
@@ -488,10 +488,17 @@ export default function Home() {
     }
     
     // Partner watersports (with individual markup)
+    // Partner watersports - NO markup, added at base price
     const partnerWatersportsTotal = selectedPartnerWatersports.reduce((sum, w) => {
-      const base = (w.pricePerHour * w.hours) + (w.pricePerDay * w.days);
-      return sum + Math.round(base * (1 + w.markup / 100));
+      const pricePerHour = Number(w.pricePerHour) || 0;
+      const pricePerDay = Number(w.pricePerDay) || 0;
+      const hours = Number(w.hours) || 0;
+      const days = Number(w.days) || 0;
+      const base = (pricePerHour * hours) + (pricePerDay * days);
+      console.log('WS DEBUG:', w.name, 'pricePerHour:', pricePerHour, 'hours:', hours, 'pricePerDay:', pricePerDay, 'days:', days, 'base:', base);
+      return sum + base;
     }, 0);
+    console.log('WS TOTAL:', partnerWatersportsTotal);
 
     // Park fees (from DB) + landing fee + default park fee
     const feesTotal = selectedFees.reduce((sum, f: any) => {
@@ -512,8 +519,9 @@ export default function Home() {
     const extraAdultsSurcharge = extraAdults * adultPriceToUse;
     const children3to11Surcharge = children3to11 * childPriceToUse;
     const extraGuestsSurcharge = extraAdultsSurcharge + children3to11Surcharge;
-    const boatPriceWithMarkup = Math.round((baseClient + extraGuestsSurcharge) * (1 + boatMarkup / 100));
-    const totalBeforeMarkup = boatPriceWithMarkup + allExtras - childrenDiscount;
+    // Markup ONLY on boat base price, extra guests added without markup
+    const boatPriceWithMarkup = Math.round(baseClient * (1 + boatMarkup / 100));
+    const totalBeforeMarkup = boatPriceWithMarkup + extraGuestsSurcharge + allExtras - childrenDiscount;
     const markupAmount = markupPercent > 0 ? Math.round(totalBeforeMarkup * markupPercent / 100) : 0;
     
     return {
@@ -527,6 +535,7 @@ export default function Home() {
       services: servicesTotal,
       transfer: transferTotal,
       fees: feesTotal,
+      partnerWatersports: partnerWatersportsTotal,
       markup: markupAmount,
       totalAgent: baseAgent + allExtras - childrenDiscount,
       totalClient: totalBeforeMarkup + markupAmount
@@ -539,8 +548,16 @@ export default function Home() {
   // ==================== PDF GENERATION ====================
   const generatePDF = () => {
     const totals = calculateTotals();
-    const boatPriceForClient = Math.round((selectedBoat.calculated_total || 0) * (1 + boatMarkup / 100));
-    const finalTotal = boatPriceForClient + totals.catering + totals.drinks + totals.toys + totals.services + totals.fees + totals.transfer;
+    const boatPriceForClient = Math.round((Number(selectedBoat.calculated_total) || Number(selectedBoat.base_price) || 0) * (1 + boatMarkup / 100));
+    
+    // Extra guests surcharge for PDF
+    const pdfAdultPrice = customAdultPrice !== null ? customAdultPrice : (selectedBoat?.extra_pax_price || 0);
+    const pdfChildPrice = customChildPrice !== null ? customChildPrice : (selectedBoat?.child_price_3_11 || selectedBoat?.extra_pax_price || 0);
+    const pdfExtraAdultsSurcharge = extraAdults * pdfAdultPrice;
+    const pdfChildren3to11Surcharge = children3to11 * pdfChildPrice;
+    const pdfExtraGuestsSurcharge = pdfExtraAdultsSurcharge + pdfChildren3to11Surcharge;
+    
+    const finalTotal = boatPriceForClient + pdfExtraGuestsSurcharge + totals.catering + totals.drinks + totals.toys + totals.services + totals.fees + totals.transfer + (totals.partnerWatersports || 0);
     
     const includedOptions = boatOptions
       .filter(opt => opt.status === 'included')
@@ -564,6 +581,19 @@ export default function Home() {
       const total = basePrice * hours;
       return '<tr><td>' + toy.name + '</td><td>' + hours + ' ч</td><td>' + total.toLocaleString() + ' THB</td></tr>';
     }).join('');
+
+    // Partner watersports items for PDF - NO markup
+    const partnerWatersportsItems = selectedPartnerWatersports.map(w => {
+      const pricePerHour = Number(w.pricePerHour) || 0;
+      const pricePerDay = Number(w.pricePerDay) || 0;
+      const hours = Number(w.hours) || 0;
+      const days = Number(w.days) || 0;
+      const total = (pricePerHour * hours) + (pricePerDay * days);
+      const timeStr = hours > 0 ? hours + ' ч' : days + ' дн';
+      return '<tr><td>' + (w.name || 'Водная услуга') + ' (' + (w.partnerName || '') + ')</td><td>' + timeStr + '</td><td>' + total.toLocaleString() + ' THB</td></tr>';
+    }).join('');
+    
+    const allToysItems = toysItems + partnerWatersportsItems;
     
     const serviceItems = selectedServices.map(s => {
       const price = customPrices['service_' + s.id] || s.price || 0;
@@ -579,23 +609,23 @@ export default function Home() {
       ? '<tr><td>Трансфер ' + (transferDirection === 'round_trip' ? '(туда-обратно)' : '(в одну сторону)') + '</td><td>' + (transferPickup.pickup || '-') + '</td><td>' + transferPickup.price.toLocaleString() + ' THB</td></tr>'
       : '';
 
-    const printContent = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Расчёт - ' + selectedBoat.boat_name + '</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;padding:20px;color:#000;max-width:600px;margin:0 auto;font-size:10px}.header{text-align:center;margin-bottom:15px;padding-bottom:20px;border-bottom:3px solid #2563eb}.logo{font-size:22px;font-weight:bold;color:#2563eb;margin-bottom:5px}.subtitle{color:#333;font-size:10px}.date{color:#666;font-size:10px;margin-top:10px}.yacht-info{background:linear-gradient(135deg,#2563eb,#1d4ed8);color:white;padding:15px;border-radius:8px;margin-bottom:12px}.yacht-name{font-size:18px;font-weight:bold;margin-bottom:15px}.yacht-details{display:flex;gap:15px;flex-wrap:wrap}.yacht-detail-label{font-size:10px;opacity:0.8}.yacht-detail-value{font-size:11px;font-weight:600}.section{margin-bottom:10px}.section-title{font-size:11px;font-weight:600;color:#2563eb;margin-bottom:10px;padding-bottom:5px;border-bottom:2px solid #e5e7eb}.included-list{display:flex;flex-wrap:wrap;gap:5px}.included-item{background:#f0fdf4;color:#166534;padding:6px 12px;border-radius:12px;font-size:11px}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{padding:6px 8px;text-align:left;border-bottom:1px solid #e5e7eb}th{background:#f8fafc;font-weight:600;color:#374151}td:last-child{text-align:right;font-weight:500}.total-section{background:linear-gradient(135deg,#7c3aed,#6d28d9);color:white;padding:15px;border-radius:8px;margin-top:15px}.total-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.2)}.total-row:last-child{border-bottom:none}.total-row.final{font-size:11px;font-weight:bold;margin-top:10px;padding-top:15px;border-top:2px solid rgba(255,255,255,0.3)}.footer{margin-top:20px;text-align:center;color:#333;font-size:10px;padding-top:20px;border-top:1px solid #e5e7eb}@media print{body{padding:20px;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}}</style></head><body>' +
+    const printContent = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Расчёт - ' + selectedBoat.boat_name + '</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Segoe UI,Roboto,Arial,sans-serif;padding:40px;color:#1a1a2e;max-width:700px;margin:0 auto;font-size:12px;background:#fff;line-height:1.5}.header{text-align:center;margin-bottom:30px;padding:30px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border-radius:16px;color:white}.logo{font-size:28px;font-weight:800;color:white;margin-bottom:8px;letter-spacing:2px;text-transform:uppercase}.subtitle{color:rgba(255,255,255,0.9);font-size:14px;font-weight:300}.date{color:rgba(255,255,255,0.8);font-size:12px;margin-top:15px;padding-top:15px;border-top:1px solid rgba(255,255,255,0.3)}.yacht-info{background:#f8fafc;border:2px solid #e2e8f0;padding:24px;border-radius:16px;margin-bottom:24px}.yacht-name{font-size:24px;font-weight:700;margin-bottom:20px;color:#1e293b;border-bottom:2px solid #667eea;padding-bottom:12px}.yacht-details{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}.yacht-detail-label{font-size:11px;color:#64748b;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px}.yacht-detail-value{font-size:15px;font-weight:600;color:#1e293b}.section{margin-bottom:24px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.05)}.section-title{font-size:14px;font-weight:700;color:#667eea;margin-bottom:16px;padding-bottom:10px;border-bottom:2px solid #667eea;text-transform:uppercase;letter-spacing:1px}.included-list{display:flex;flex-wrap:wrap;gap:8px}.included-item{background:linear-gradient(135deg,#d1fae5,#a7f3d0);color:#065f46;padding:8px 14px;border-radius:20px;font-size:12px;font-weight:500}table{width:100%;border-collapse:collapse;margin-top:12px}th,td{padding:12px 16px;text-align:left;border-bottom:1px solid #f1f5f9}th{background:linear-gradient(135deg,#f8fafc,#f1f5f9);font-weight:600;color:#475569;font-size:11px;text-transform:uppercase;letter-spacing:0.5px}td:last-child{text-align:right;font-weight:600;color:#1e293b}.total-section{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:28px;border-radius:16px;margin-top:28px;box-shadow:0 10px 40px rgba(102,126,234,0.3)}.total-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.15);font-size:14px}.total-row:last-child{border-bottom:none}.total-row.final{font-size:20px;font-weight:800;margin-top:16px;padding-top:20px;border-top:2px solid rgba(255,255,255,0.4);border-bottom:none}.footer{margin-top:32px;text-align:center;color:#64748b;font-size:12px;padding:24px;background:#f8fafc;border-radius:12px}@media print{body{padding:20px;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}}</style></head><body>' +
       '<div class="header"><div class="logo">ОСТРОВ СОКРОВИЩ</div><div class="subtitle">Аренда яхт на Пхукете</div><div class="date">' + new Date().toLocaleDateString('ru-RU', { day: '2-digit', month: 'long', year: 'numeric' }) + '</div></div>' +
       '<div class="yacht-info"><div class="yacht-name">' + (selectedBoat.boat_name || 'Яхта') + '</div><div class="yacht-details"><div class="yacht-detail"><div class="yacht-detail-label">Маршрут</div><div class="yacht-detail-value">' + (selectedBoat.route_name || 'По запросу') + '</div></div><div class="yacht-detail"><div class="yacht-detail-label">Длительность</div><div class="yacht-detail-value">' + (selectedBoat.duration || '8 часов') + '</div></div><div class="yacht-detail"><div class="yacht-detail-label">Макс. гостей</div><div class="yacht-detail-value">' + (selectedBoat.max_guests || '-') + ' человек</div></div><div class="yacht-detail"><div class="yacht-detail-label">Стоимость яхты</div><div class="yacht-detail-value">' + boatPriceForClient.toLocaleString() + ' THB</div></div></div></div>' +
       (includedOptions.length > 0 ? '<div class="section"><div class="section-title">ВКЛЮЧЕНО В СТОИМОСТЬ</div><div class="included-list">' + includedOptions.map(opt => '<span class="included-item">' + opt + '</span>').join('') + '</div></div>' : '') +
       (cateringItems ? '<div class="section"><div class="section-title">ПИТАНИЕ</div><table><tr><th>Название</th><th>Кол-во</th><th>Сумма</th></tr>' + cateringItems + '</table></div>' : '') +
       (drinkItems ? '<div class="section"><div class="section-title">НАПИТКИ</div><table><tr><th>Название</th><th>Кол-во</th><th>Сумма</th></tr>' + drinkItems + '</table></div>' : '') +
-      (toysItems ? '<div class="section"><div class="section-title">ВОДНЫЕ РАЗВЛЕЧЕНИЯ</div><table><tr><th>Название</th><th>Время</th><th>Сумма</th></tr>' + toysItems + '</table></div>' : '') +
+      (allToysItems ? '<div class="section"><div class="section-title">ВОДНЫЕ РАЗВЛЕЧЕНИЯ</div><table><tr><th>Название</th><th>Время</th><th>Сумма</th></tr>' + allToysItems + '</table></div>' : '') +
       (serviceItems ? '<div class="section"><div class="section-title">ДОПОЛНИТЕЛЬНЫЕ УСЛУГИ</div><table><tr><th>Услуга</th><th>Кол-во</th><th>Сумма</th></tr>' + serviceItems + '</table></div>' : '') +
       (feeItems ? '<div class="section"><div class="section-title">ПАРКОВЫЕ СБОРЫ</div><table><tr><th>Название</th><th>Гостей</th><th>Сумма</th></tr>' + feeItems + '</table></div>' : '') +
       (transferHtml ? '<div class="section"><div class="section-title">ТРАНСФЕР</div><table><tr><th>Тип</th><th>Адрес</th><th>Сумма</th></tr>' + transferHtml + '</table></div>' : '') +
-      '<div class="total-section"><div class="total-row"><span>Яхта</span><span>' + boatPriceForClient.toLocaleString() + ' THB</span></div>' +
+      '<div class="total-section"><div class="total-row"><span>Яхта</span><span>' + boatPriceForClient.toLocaleString() + ' THB</span></div>' + (pdfExtraGuestsSurcharge > 0 ? '<div class="total-row"><span>Доп. гости (' + extraAdults + ' взр + ' + children3to11 + ' дет)</span><span>+' + pdfExtraGuestsSurcharge.toLocaleString() + ' THB</span></div>' : '') +
       (totals.catering > 0 ? '<div class="total-row"><span>Питание</span><span>+' + totals.catering.toLocaleString() + ' THB</span></div>' : '') +
       (totals.drinks > 0 ? '<div class="total-row"><span>Напитки</span><span>+' + totals.drinks.toLocaleString() + ' THB</span></div>' : '') +
       (totals.toys > 0 ? '<div class="total-row"><span>Водные развлечения</span><span>+' + totals.toys.toLocaleString() + ' THB</span></div>' : '') +
       (totals.services > 0 ? '<div class="total-row"><span>Услуги</span><span>+' + totals.services.toLocaleString() + ' THB</span></div>' : '') +
       (totals.fees > 0 ? '<div class="total-row"><span>Парковые сборы</span><span>+' + totals.fees.toLocaleString() + ' THB</span></div>' : '') +
-      (totals.transfer > 0 ? '<div class="total-row"><span>Трансфер</span><span>+' + totals.transfer.toLocaleString() + ' THB</span></div>' : '') +
+      (totals.transfer > 0 ? '<div class="total-row"><span>Трансфер</span><span>+' + totals.transfer.toLocaleString() + ' THB</span></div>' : '') + (totals.partnerWatersports > 0 ? '<div class="total-row"><span>Водные услуги</span><span>+' + totals.partnerWatersports.toLocaleString() + ' THB</span></div>' : '') +
       '<div class="total-row final"><span>ИТОГО К ОПЛАТЕ</span><span>' + finalTotal.toLocaleString() + ' THB</span></div></div>' +
       '<div class="footer"><p><strong>Остров Сокровищ</strong> — Аренда яхт на Пхукете</p><p>WhatsApp: +66 810507171 • Email: tratatobookings@gmail.com</p></div></body></html>';
     
@@ -612,7 +642,7 @@ export default function Home() {
     if (!selectedBoat) return;
     
     const totals = calculateTotals();
-    const boatPriceForClient = Math.round((selectedBoat.calculated_total || 0) * (1 + boatMarkup / 100));
+    const boatPriceForClient = Math.round((Number(selectedBoat.calculated_total) || Number(selectedBoat.base_price) || 0) * (1 + boatMarkup / 100));
     
     let message = '🚤 *ЗАПРОС НА БРОНИРОВАНИЕ*\n\n';
     message += '🛥️ *Яхта:* ' + selectedBoat.boat_name + '\n';
@@ -653,7 +683,7 @@ export default function Home() {
       }
     }
     
-    const finalTotal = boatPriceForClient + totals.catering + totals.drinks + totals.toys + totals.services + totals.fees + totals.transfer;
+    const finalTotal = boatPriceForClient + totals.catering + totals.drinks + totals.toys + totals.services + totals.fees + totals.transfer + (totals.partnerWatersports || 0);
     message += '\n✅ *ИТОГО: ' + finalTotal.toLocaleString() + ' THB*';
     
     const encoded = encodeURIComponent(message);
@@ -733,15 +763,16 @@ export default function Home() {
   
   // Add watersport from partner with markup
   const addPartnerWatersport = (item: any, partner: any) => {
+    // Priority: if price_per_hour exists, use hours; otherwise use days
+    const useHours = (item.price_per_hour || 0) > 0;
     setSelectedPartnerWatersports([...selectedPartnerWatersports, {
       id: item.id,
       name: item.name_en,
       partnerName: partner.name,
       pricePerHour: customPrices[`ws_${item.id}`] !== undefined ? (item.price_per_hour > 0 ? customPrices[`ws_${item.id}`] : 0) : (item.price_per_hour || 0),
       pricePerDay: customPrices[`ws_${item.id}`] !== undefined ? (item.price_per_day > 0 ? customPrices[`ws_${item.id}`] : 0) : (item.price_per_day || 0),
-      hours: item.price_per_day ? 0 : 1,
-      days: item.price_per_day ? 1 : 0,
-      markup: 15
+      hours: useHours ? 1 : 0,
+      days: useHours ? 0 : 1
     }]);
   };
   
@@ -1269,6 +1300,11 @@ export default function Home() {
                                   style={{ width: '70px', padding: '4px 6px', border: '1px solid #d97706', borderRadius: '6px', textAlign: 'right', fontWeight: '600', fontSize: '14px', color: '#d97706' }}
                                 />
                                 <span style={{ fontWeight: '600', color: '#d97706' }}>THB</span>
+                                {isAdded && order && (
+                                  <span style={{ marginLeft: '8px', fontWeight: '700', color: '#059669', fontSize: '14px' }}>
+                                    = {(order.pricePerPerson * order.persons).toLocaleString()} THB
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -1395,6 +1431,11 @@ export default function Home() {
                                           style={{ width: '70px', padding: '4px 6px', border: '1px solid #7c3aed', borderRadius: '6px', textAlign: 'right', fontWeight: '600', fontSize: '14px', color: '#7c3aed' }}
                                         />
                                         <span style={{ fontWeight: '600', color: '#7c3aed' }}>THB</span>
+                                        {isAdded && order && (
+                                          <span style={{ marginLeft: '8px', fontWeight: '700', color: '#059669', fontSize: '14px' }}>
+                                            = {(order.pricePerPerson * order.persons).toLocaleString()} THB
+                                          </span>
+                                        )}
                                       </div>
                                     </div>
                                   </div>
@@ -1739,7 +1780,7 @@ export default function Home() {
                                               pricePerHour: customPrices[`ws_${item.id}`] !== undefined ? (item.price_per_hour > 0 ? customPrices[`ws_${item.id}`] : 0) : (item.price_per_hour || 0),
                                               pricePerDay: customPrices[`ws_${item.id}`] !== undefined ? (item.price_per_day > 0 ? customPrices[`ws_${item.id}`] : 0) : (item.price_per_day || 0),
                                               hours: (item.price_per_hour || 0) > 0 ? 1 : 0,
-                                              days: (item.price_per_day || 0) > 0 ? 1 : 0,
+                                              days: (item.price_per_hour || 0) > 0 ? 0 : ((item.price_per_day || 0) > 0 ? 1 : 0),
                                               // markup removed
                                             }]);
                                           }

@@ -144,14 +144,24 @@ export default function PartnersPage() {
   const deleteBoatPartner = async (id: number) => {
     const partnerBoats = boats.filter((b: any) => b.partner_id === id);
     if (partnerBoats.length > 0) {
-      if (!confirm('У этого партнёра есть ' + partnerBoats.length + ' лодок. Удалить партнёра и все его лодки?')) {
+      if (!confirm('У этого партнёра есть ' + partnerBoats.length + ' лодок. Удалить партнёра и все его данные (лодки, цены, опции)?')) {
         return;
       }
+      // Получаем ID всех лодок партнёра
+      const boatIds = partnerBoats.map((b: any) => b.id);
+      
+      // Удаляем в правильном порядке (из-за foreign keys)
+      // 1. Удаляем boat_options
+      await supabase.from('boat_options').delete().in('boat_id', boatIds);
+      // 2. Удаляем route_prices
+      await supabase.from('route_prices').delete().in('boat_id', boatIds);
+      // 3. Удаляем лодки
       await supabase.from('boats').delete().eq('partner_id', id);
     }
+    // 4. Удаляем партнёра
     const { error } = await supabase.from('partners').delete().eq('id', id);
     if (!error) {
-      setMessage('Партнёр удалён');
+      setMessage('Партнёр и все связанные данные удалены');
       loadData();
     } else {
       setMessage('Ошибка: ' + error.message);
