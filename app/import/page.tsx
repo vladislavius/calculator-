@@ -1329,7 +1329,7 @@ export default function ImportPage() {
             <div style={{backgroundColor: 'white', borderRadius: '12px 12px 0 0', display: 'flex', borderBottom: '1px solid #e5e7eb'}}>
               <button onClick={() => setActiveTab('partner')} style={tabStyle(activeTab === 'partner')}>🏢 Партнёр</button>
               <button onClick={() => setActiveTab('boats')} style={tabStyle(activeTab === 'boats')}>🚤 Лодки ({extractedData.boats.length})</button>
-              <button onClick={() => setActiveTab('routes')} style={tabStyle(activeTab === 'routes')}>🗺️ Маршруты ({extractedData.routes.length})</button>
+              {/* Routes tab hidden - routes are now per-boat */}
               <button onClick={() => setActiveTab('extras')} style={tabStyle(activeTab === 'extras')}>🎁 Extras ({extractedData.extras.length})</button>
               <button onClick={() => setActiveTab('terms')} style={tabStyle(activeTab === 'terms')}>📜 Условия</button>
             </div>
