@@ -27,6 +27,8 @@ interface ExtractedBoat {
   year_built: string;
   max_pax_day: number | null;
   max_pax_overnight: number | null;
+  base_pax: number | null;
+  extra_pax_price: number | null;
   cabins: number | null;
   toilets: number | null;
   crew_count: number | null;
@@ -70,6 +72,7 @@ interface ExtractedRoute {
   guests_from?: number | null;
   guests_to?: number | null;
   season_dates?: string;
+  max_guests?: number | null;
 }
 
 interface ExtractedExtra {
@@ -262,6 +265,7 @@ export default function ImportPage() {
         max_pax_day: b.max_pax_day || b.max_guests || null,
         max_pax_overnight: b.max_pax_overnight || null,
         base_pax: b.base_pax || null,
+        extra_pax_price: b.extra_pax_price || null,
         crew_count: b.crew_count || null,
         speed_cruise: b.speed_cruise_knots || null,
         speed_max: b.speed_max_knots || null,
@@ -510,7 +514,7 @@ export default function ImportPage() {
       ...extractedData,
       boats: [...extractedData.boats, {
         name: '', type: 'catamaran', model: '', length_ft: null, beam_ft: null,
-        draft_ft: null, year_built: '', max_pax_day: null, max_pax_overnight: null,
+        draft_ft: null, year_built: '', max_pax_day: null, max_pax_overnight: null, base_pax: null, extra_pax_price: null,
         cabins: null, toilets: null, crew_count: 3, speed_cruise: null, speed_max: null,
         fuel_capacity: null, water_capacity: null, generator: false, air_conditioning: true,
         stabilizers: false, bow_thruster: false, stern_thruster: false,
@@ -1414,10 +1418,12 @@ export default function ImportPage() {
 
                       {/* Capacity */}
                       <div style={{marginBottom: '20px'}}>
-                        <h5 style={{fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '12px'}}>Вместимость</h5>
-                        <div style={{display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '12px'}}>
+                        <h5 style={{fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '12px'}}>Вместимость и цены за доп. гостей</h5>
+                        <div style={{display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: '12px'}}>
                           <div><label style={labelStyle}>Max Day</label><input type="number" value={boat.max_pax_day || ''} onChange={(e) => updateBoat(bi, 'max_pax_day', Number(e.target.value))} style={inputStyle} /></div>
                           <div><label style={labelStyle}>Max Overnight</label><input type="number" value={boat.max_pax_overnight || ''} onChange={(e) => updateBoat(bi, 'max_pax_overnight', Number(e.target.value))} style={inputStyle} /></div>
+                          <div><label style={labelStyle}>Включено (чел)</label><input type="number" value={boat.base_pax || ''} onChange={(e) => updateBoat(bi, 'base_pax', Number(e.target.value))} style={inputStyle} placeholder="12" /></div>
+                          <div><label style={labelStyle}>Доплата/чел (THB)</label><input type="number" value={boat.extra_pax_price || ''} onChange={(e) => updateBoat(bi, 'extra_pax_price', Number(e.target.value))} style={inputStyle} placeholder="2500" /></div>
                           <div><label style={labelStyle}>Каюты</label><input type="number" value={boat.cabins || ''} onChange={(e) => updateBoat(bi, 'cabins', Number(e.target.value))} style={inputStyle} /></div>
                           <div><label style={labelStyle}>Туалеты</label><input type="number" value={boat.toilets || ''} onChange={(e) => updateBoat(bi, 'toilets', Number(e.target.value))} style={inputStyle} /></div>
                           <div><label style={labelStyle}>Экипаж</label><input type="number" value={boat.crew_count || ''} onChange={(e) => updateBoat(bi, 'crew_count', Number(e.target.value))} style={inputStyle} /></div>
@@ -1530,7 +1536,7 @@ export default function ImportPage() {
                                     style={{color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px'}}
                                   >🗑️</button>
                                 </div>
-                                <div style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px'}}>
+                                <div style={{display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '10px'}}>
                                   <div>
                                     <label style={{fontSize: '11px', color: '#6b7280'}}>Направление *</label>
                                     <input 
@@ -1545,21 +1551,32 @@ export default function ImportPage() {
                                     />
                                   </div>
                                   <div>
-                                    <label style={{fontSize: '11px', color: '#6b7280'}}>Слот</label>
-                                    <select 
-                                      value={route.time_slot || 'full_day'}
+                                    <label style={{fontSize: '11px', color: '#6b7280'}}>Часов</label>
+                                    <input 
+                                      type="number"
+                                      value={route.duration_hours || 8}
                                       onChange={(e) => {
                                         const boats = [...extractedData.boats];
-                                        boats[bi].routes[ri].time_slot = e.target.value;
+                                        boats[bi].routes[ri].duration_hours = Number(e.target.value);
                                         setExtractedData({...extractedData, boats});
                                       }}
                                       style={{width: '100%', padding: '6px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '13px'}}
-                                    >
-                                      <option value="half_day">Полдня (4ч)</option>
-                                      <option value="full_day">Полный день (8ч)</option>
-                                      <option value="sunset">Закат</option>
-                                      <option value="overnight">Ночёвка</option>
-                                    </select>
+                                      placeholder="8"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label style={{fontSize: '11px', color: '#6b7280'}}>Ночей</label>
+                                    <input 
+                                      type="number"
+                                      value={route.duration_nights || 0}
+                                      onChange={(e) => {
+                                        const boats = [...extractedData.boats];
+                                        boats[bi].routes[ri].duration_nights = Number(e.target.value);
+                                        setExtractedData({...extractedData, boats});
+                                      }}
+                                      style={{width: '100%', padding: '6px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '13px'}}
+                                      placeholder="0"
+                                    />
                                   </div>
                                   <div>
                                     <label style={{fontSize: '11px', color: '#6b7280'}}>Сезон</label>
@@ -1605,6 +1622,20 @@ export default function ImportPage() {
                                       }}
                                       style={{width: '100%', padding: '6px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '13px'}}
                                       placeholder="0"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label style={{fontSize: '11px', color: '#6b7280'}}>Макс. гостей</label>
+                                    <input 
+                                      type="number"
+                                      value={route.max_guests || ''} 
+                                      onChange={(e) => {
+                                        const boats = [...extractedData.boats];
+                                        boats[bi].routes[ri].max_guests = Number(e.target.value);
+                                        setExtractedData({...extractedData, boats});
+                                      }}
+                                      style={{width: '100%', padding: '6px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '13px'}}
+                                      placeholder="12"
                                     />
                                   </div>
                                 </div>

@@ -47,22 +47,27 @@ EXTRACT STRUCTURE:
   "toilets": number or null,
   "showers": number or null,
   "max_pax_day": number - from "up to X people/pax",
-  "max_pax_overnight": number or null,
-  "base_pax": number - the pax included in base price,
+  "max_pax_overnight": number or null - for overnight charters (e.g. "OVER NIGHT 2 Pax" = 2),
+  "base_pax": number - passengers INCLUDED in base price (e.g. "PRICE BASED ON 12 PASSENGERS" = 12),
+  "extra_pax_price": number - price per ADDITIONAL person above base_pax (e.g. "Additional 2,500 THB/Person" = 2500),
   "crew_count": number or null,
   "departure_pier": "if mentioned",
   "routes": [
     {
-      "destination": "EXACT route name - copy word for word",
-      "charter_type": "morning/afternoon/full_day/sunset",
-      "duration_hours": 4 for half-day, 8 for full-day,
-      "time_slot": "half_day/full_day/sunset/overnight",
-      "base_price": exact price from contract for this route,
-      "agent_price": same as base_price (agent gets this price),
-      "fuel_surcharge": number if route has extra fuel cost,
-      "season": "all" if one price for all seasons, or "low"/"high"/"peak"
+      "destination": "ONLY the destination/islands names (e.g. 'KHAI, NAKA NOI' not 'HALF DAY KHAI, NAKA NOI')",
+      "duration_hours": number of hours (4 for half-day, 8 for full-day, 24 for overnight, etc),
+      "duration_nights": number of nights (0 for day trips, 1 for overnight, 2 for 3D/2N, etc),
+      "base_price": exact price from contract,
+      "agent_price": same as base_price,
+      "fuel_surcharge": extra fuel cost if mentioned,
+      "season": "all" if one price, or "low"/"high"/"peak"
     }
   ]
+
+IMPORTANT for route names:
+- Extract ONLY destination names: "KHAI, NAKA NOI" or "PHI PHI ISLANDS"
+- Do NOT include duration in name: NOT "HALF DAY KHAI" or "FULL DAY PHI PHI"
+- Duration goes in duration_hours/duration_nights fields
 }
 
 CRITICAL: Each boat has its OWN routes array! 
