@@ -22,14 +22,6 @@ export default function PartnersPage() {
   const [boatRoutes, setBoatRoutes] = useState<any[]>([]);
   const [boatPrices, setBoatPrices] = useState<any[]>([]);
   const [boatOptions, setBoatOptions] = useState<any[]>([]);
-  const [allRoutes, setAllRoutes] = useState<any[]>([]);
-  const [showAddPriceModal, setShowAddPriceModal] = useState(false);
-  const [newPriceRoute, setNewPriceRoute] = useState<number | 'new'>(0);
-  const [newRouteName, setNewRouteName] = useState('');
-  const [newPriceSeason, setNewPriceSeason] = useState('low');
-  const [newPriceSlot, setNewPriceSlot] = useState('full_day');
-  const [newPriceAgent, setNewPriceAgent] = useState(50000);
-  const [newPriceClient, setNewPriceClient] = useState(57500);
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -38,12 +30,11 @@ export default function PartnersPage() {
     setSelectedBoat(boat);
     setEditMode(false);
     
-    // Load all routes for dropdown
+    // Load routes for this boat
     const { data: routes } = await supabase
       .from('routes')
       .select('*')
-      .order('name');
-    if (routes) setAllRoutes(routes);
+      .eq('id', boat.id);
     
     // Load prices
     const { data: prices } = await supabase
@@ -105,65 +96,33 @@ export default function PartnersPage() {
     }
   };
 
-  // Open add price modal
-  const addBoatPrice = () => {
-    if (!selectedBoat) return;
-    setNewPriceRoute(allRoutes[0]?.id || 0);
-    setNewRouteName('');
-    setNewPriceSeason('low');
-    setNewPriceSlot('full_day');
-    setNewPriceAgent(50000);
-    setNewPriceClient(57500);
-    setShowAddPriceModal(true);
-  };
-
-  // Save new price from modal
-  const saveNewPrice = async () => {
+  // Add new price/route for boat
+  const addBoatPrice = async () => {
     if (!selectedBoat) return;
     
-    let routeId: number = typeof newPriceRoute === 'number' ? newPriceRoute : 0;
-    
-    // If creating new route
-    if (newPriceRoute === 'new' && newRouteName.trim()) {
-      const { data: newRoute, error: routeError } = await supabase
-        .from('routes')
-        .insert({ name: newRouteName.trim() })
-        .select('id')
-        .single();
-      
-      if (routeError) {
-        setMessage('❌ Ошибка создания маршрута: ' + routeError.message);
-        return;
-      }
-      routeId = newRoute.id;
-      setAllRoutes([...allRoutes, { id: newRoute.id, name: newRouteName.trim() }]);
-    }
+    // Get first route or create default
+    const { data: routes } = await supabase.from('routes').select('id').limit(1);
+    const routeId = routes?.[0]?.id || 1;
     
     const { data: newPrice, error } = await supabase
       .from('route_prices')
       .insert({
         boat_id: selectedBoat.id,
         route_id: routeId,
-        season: newPriceSeason,
-        time_slot: newPriceSlot,
-        base_price: newPriceAgent,
-        agent_price: newPriceAgent,
-        client_price: newPriceClient,
+        season: 'low',
+        time_slot: 'full_day',
+        base_price: 50000,
+        agent_price: 50000,
+        client_price: 57500,
         valid_from: new Date().toISOString().split('T')[0],
         valid_to: '2027-12-31'
       })
       .select('*, routes(*)')
       .single();
     
-    if (error) {
-      setMessage('❌ ' + error.message);
-      return;
-    }
-    
-    if (newPrice) {
+    if (!error && newPrice) {
       setBoatPrices([...boatPrices, newPrice]);
       setMessage('✅ Цена добавлена');
-      setShowAddPriceModal(false);
     }
   };
 
@@ -179,32 +138,6 @@ export default function PartnersPage() {
     if (!error) {
       setBoatPrices(boatPrices.filter(p => p.id !== priceId));
       setMessage('✅ Цена удалена');
-    }
-  };
-
-  // Toggle boat option (included/paid)
-  const toggleBoatOption = async (optionId: number, field: string, value: boolean | number) => {
-    const { error } = await supabase
-      .from('boat_options')
-      .update({ [field]: value })
-      .eq('id', optionId);
-    
-    if (!error) {
-      setBoatOptions(boatOptions.map(o => 
-        o.id === optionId ? { ...o, [field]: value } : o
-      ));
-    }
-  };
-
-  // Delete boat option
-  const deleteBoatOption = async (optionId: number) => {
-    const { error } = await supabase
-      .from('boat_options')
-      .delete()
-      .eq('id', optionId);
-    
-    if (!error) {
-      setBoatOptions(boatOptions.filter(o => o.id !== optionId));
     }
   };
   
@@ -684,119 +617,30 @@ export default function PartnersPage() {
             
             {/* Prices Section */}
             <div style={{ marginBottom: '24px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: '600', margin: 0 }}>💰 Цены по маршрутам</h3>
-                {editMode && (
-                  <button 
-                    onClick={addBoatPrice}
-                    style={{ padding: '6px 12px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}
-                  >
-                    + Добавить цену
-                  </button>
-                )}
-              </div>
+              <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px' }}>💰 Цены по маршрутам</h3>
               {boatPrices.length > 0 ? (
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                   <thead>
                     <tr style={{ backgroundColor: '#f3f4f6' }}>
                       <th style={{ padding: '8px', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>Маршрут</th>
                       <th style={{ padding: '8px', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>Сезон</th>
-                      <th style={{ padding: '8px', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>Слот</th>
-                      <th style={{ padding: '8px', textAlign: 'right', borderBottom: '1px solid #e5e7eb' }}>Агент (THB)</th>
-                      <th style={{ padding: '8px', textAlign: 'right', borderBottom: '1px solid #e5e7eb' }}>Клиент (THB)</th>
-                      <th style={{ padding: '8px', textAlign: 'center', borderBottom: '1px solid #e5e7eb', width: '50px' }}></th>
+                      <th style={{ padding: '8px', textAlign: 'right', borderBottom: '1px solid #e5e7eb' }}>Агент</th>
+                      <th style={{ padding: '8px', textAlign: 'right', borderBottom: '1px solid #e5e7eb' }}>Клиент</th>
                     </tr>
                   </thead>
                   <tbody>
                     {boatPrices.map((price: any) => (
                       <tr key={price.id}>
-                        <td style={{ padding: '6px 8px', borderBottom: '1px solid #f3f4f6' }}>
-                          {editMode ? (
-                            <select 
-                              value={price.route_id}
-                              onChange={(e) => updatePrice(price.id, 'route_id', Number(e.target.value))}
-                              style={{ padding: '4px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '12px', maxWidth: '150px' }}
-                            >
-                              {allRoutes.map((r: any) => (
-                                <option key={r.id} value={r.id}>{r.name}</option>
-                              ))}
-                            </select>
-                          ) : (
-                            <span>{price.routes?.name || allRoutes.find((r: any) => r.id === price.route_id)?.name || 'Маршрут ' + price.route_id}</span>
-                          )}
-                        </td>
-                        <td style={{ padding: '6px 8px', borderBottom: '1px solid #f3f4f6' }}>
-                          {editMode ? (
-                            <select 
-                              value={price.season || 'low'}
-                              onChange={(e) => updatePrice(price.id, 'season', e.target.value)}
-                              style={{ padding: '4px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '12px' }}
-                            >
-                              <option value="low">Low</option>
-                              <option value="high">High</option>
-                              <option value="peak">Peak</option>
-                            </select>
-                          ) : (
-                            <span>{price.season}</span>
-                          )}
-                        </td>
-                        <td style={{ padding: '6px 8px', borderBottom: '1px solid #f3f4f6' }}>
-                          {editMode ? (
-                            <select 
-                              value={price.time_slot || 'full_day'}
-                              onChange={(e) => updatePrice(price.id, 'time_slot', e.target.value)}
-                              style={{ padding: '4px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '12px' }}
-                            >
-                              <option value="half_day">Полдня</option>
-                              <option value="full_day">Полный день</option>
-                              <option value="sunset">Закат</option>
-                              <option value="overnight">Ночёвка</option>
-                            </select>
-                          ) : (
-                            <span>{price.time_slot === 'full_day' ? 'Полный день' : price.time_slot === 'half_day' ? 'Полдня' : price.time_slot === 'sunset' ? 'Закат' : price.time_slot === 'overnight' ? 'Ночёвка' : price.time_slot}</span>
-                          )}
-                        </td>
-                        <td style={{ padding: '6px 8px', borderBottom: '1px solid #f3f4f6', textAlign: 'right' }}>
-                          {editMode ? (
-                            <input 
-                              type="number"
-                              value={price.agent_price || 0}
-                              onChange={(e) => updatePrice(price.id, 'agent_price', Number(e.target.value))}
-                              style={{ width: '90px', padding: '4px', border: '1px solid #d1d5db', borderRadius: '4px', textAlign: 'right', color: '#059669' }}
-                            />
-                          ) : (
-                            <span style={{ color: '#059669' }}>{price.agent_price?.toLocaleString()}</span>
-                          )}
-                        </td>
-                        <td style={{ padding: '6px 8px', borderBottom: '1px solid #f3f4f6', textAlign: 'right' }}>
-                          {editMode ? (
-                            <input 
-                              type="number"
-                              value={price.client_price || 0}
-                              onChange={(e) => updatePrice(price.id, 'client_price', Number(e.target.value))}
-                              style={{ width: '90px', padding: '4px', border: '1px solid #d1d5db', borderRadius: '4px', textAlign: 'right', fontWeight: '600' }}
-                            />
-                          ) : (
-                            <span style={{ fontWeight: '600' }}>{price.client_price?.toLocaleString()}</span>
-                          )}
-                        </td>
-                        <td style={{ padding: '6px 8px', borderBottom: '1px solid #f3f4f6', textAlign: 'center' }}>
-                          {editMode && (
-                            <button 
-                              onClick={() => deletePrice(price.id)}
-                              style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '14px' }}
-                              title="Удалить"
-                            >
-                              🗑️
-                            </button>
-                          )}
-                        </td>
+                        <td style={{ padding: '8px', borderBottom: '1px solid #f3f4f6' }}>{price.routes?.name || 'Маршрут ' + price.route_id}</td>
+                        <td style={{ padding: '8px', borderBottom: '1px solid #f3f4f6' }}>{price.season}</td>
+                        <td style={{ padding: '8px', textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#059669' }}>{price.agent_price?.toLocaleString()} THB</td>
+                        <td style={{ padding: '8px', textAlign: 'right', borderBottom: '1px solid #f3f4f6', fontWeight: '600' }}>{price.client_price?.toLocaleString()} THB</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               ) : (
-                <p style={{ color: '#9ca3af', fontSize: '13px' }}>Цены не загружены. Нажмите "+ Добавить цену"</p>
+                <p style={{ color: '#9ca3af', fontSize: '13px' }}>Цены не загружены</p>
               )}
             </div>
             
@@ -806,10 +650,9 @@ export default function PartnersPage() {
               {boatOptions.length > 0 ? (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                   {boatOptions.map((opt: any) => (
-                    <div 
+                    <span 
                       key={opt.id}
                       style={{
-                        display: 'flex', alignItems: 'center', gap: '6px',
                         padding: '6px 12px',
                         backgroundColor: opt.included ? '#dcfce7' : '#fef3c7',
                         color: opt.included ? '#166534' : '#92400e',
@@ -817,151 +660,14 @@ export default function PartnersPage() {
                         fontSize: '12px'
                       }}
                     >
-                      {editMode ? (
-                        <span 
-                          onClick={() => toggleBoatOption(opt.id, 'included', !opt.included)}
-                          style={{ cursor: 'pointer' }}
-                          title={opt.included ? 'Сделать платным' : 'Сделать включённым'}
-                        >
-                          {opt.included ? '✓' : '💰'}
-                        </span>
-                      ) : (
-                        <span>{opt.included ? '✓' : '💰'}</span>
-                      )}
-                      <span>{opt.options_catalog?.name_en || opt.option_id}</span>
-                      {!opt.included && (
-                        editMode ? (
-                          <input 
-                            type="number"
-                            value={opt.price || 0}
-                            onChange={(e) => toggleBoatOption(opt.id, 'price', Number(e.target.value))}
-                            style={{ width: '60px', padding: '2px 4px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '11px' }}
-                            placeholder="THB"
-                          />
-                        ) : (
-                          <span>+{opt.price || 0} THB</span>
-                        )
-                      )}
-                      {editMode && (
-                        <button 
-                          onClick={() => deleteBoatOption(opt.id)}
-                          style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '12px', padding: '0 2px' }}
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </div>
+                      {opt.options_catalog?.name_en || opt.option_id} 
+                      {!opt.included && opt.price && ' +' + opt.price + ' THB'}
+                    </span>
                   ))}
                 </div>
               ) : (
                 <p style={{ color: '#9ca3af', fontSize: '13px' }}>Опции не загружены</p>
               )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add Price Modal */}
-      {showAddPriceModal && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1100,
-          display: 'flex', alignItems: 'center', justifyContent: 'center'
-        }} onClick={() => setShowAddPriceModal(false)}>
-          <div 
-            style={{ backgroundColor: 'white', borderRadius: '12px', padding: '24px', width: '450px' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 style={{ margin: '0 0 20px', fontSize: '18px' }}>➕ Добавить цену</h3>
-            
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '13px', color: '#666', marginBottom: '4px' }}>Маршрут</label>
-              <select 
-                value={newPriceRoute}
-                onChange={(e) => setNewPriceRoute(e.target.value === 'new' ? 'new' : Number(e.target.value))}
-                style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px' }}
-              >
-                {allRoutes.map((r: any) => (
-                  <option key={r.id} value={r.id}>{r.name}</option>
-                ))}
-                <option value="new">➕ Создать новый маршрут...</option>
-              </select>
-            </div>
-            
-            {newPriceRoute === 'new' && (
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '13px', color: '#666', marginBottom: '4px' }}>Название нового маршрута</label>
-                <input 
-                  value={newRouteName}
-                  onChange={(e) => setNewRouteName(e.target.value)}
-                  placeholder="Например: Coral Island + Racha"
-                  style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px' }}
-                />
-              </div>
-            )}
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '13px', color: '#666', marginBottom: '4px' }}>Сезон</label>
-                <select 
-                  value={newPriceSeason}
-                  onChange={(e) => setNewPriceSeason(e.target.value)}
-                  style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px' }}
-                >
-                  <option value="low">Low Season</option>
-                  <option value="high">High Season</option>
-                  <option value="peak">Peak Season</option>
-                </select>
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '13px', color: '#666', marginBottom: '4px' }}>Слот</label>
-                <select 
-                  value={newPriceSlot}
-                  onChange={(e) => setNewPriceSlot(e.target.value)}
-                  style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px' }}
-                >
-                  <option value="half_day">Полдня (4-5 ч)</option>
-                  <option value="full_day">Полный день (8 ч)</option>
-                  <option value="sunset">Закат (3-4 ч)</option>
-                  <option value="overnight">Ночёвка</option>
-                </select>
-              </div>
-            </div>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '13px', color: '#666', marginBottom: '4px' }}>Цена агента (THB)</label>
-                <input 
-                  type="number"
-                  value={newPriceAgent}
-                  onChange={(e) => setNewPriceAgent(Number(e.target.value))}
-                  style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px' }}
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '13px', color: '#666', marginBottom: '4px' }}>Цена клиента (THB)</label>
-                <input 
-                  type="number"
-                  value={newPriceClient}
-                  onChange={(e) => setNewPriceClient(Number(e.target.value))}
-                  style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px' }}
-                />
-              </div>
-            </div>
-            
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-              <button 
-                onClick={() => setShowAddPriceModal(false)}
-                style={{ padding: '8px 16px', backgroundColor: '#e5e7eb', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
-              >
-                Отмена
-              </button>
-              <button 
-                onClick={saveNewPrice}
-                style={{ padding: '8px 16px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
-              >
-                💾 Сохранить
-              </button>
             </div>
           </div>
         </div>
@@ -1247,6 +953,7 @@ export default function PartnersPage() {
                                       <strong>{boat.name}</strong>
                                       {boat.length_ft && <span style={{ color: '#6b7280' }}> ({boat.length_ft}ft)</span>}
                                       {boat.boat_type && <span style={{ color: '#9ca3af' }}> - {boat.boat_type}</span>}
+                                      <span style={{ float: 'right', color: '#3b82f6', fontSize: '11px' }}>открыть →</span>
                                     </div>
                                   ))}
                                 </div>
