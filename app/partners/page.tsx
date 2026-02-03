@@ -81,7 +81,7 @@ export default function PartnersPage() {
         name: selectedBoat.name,
         boat_type: selectedBoat.boat_type,
         length_ft: selectedBoat.length_ft,
-        max_guests: selectedBoat.max_guests,
+        max_pax_day: selectedBoat.max_pax_day,
         cabins: selectedBoat.cabins,
         year_built: selectedBoat.year_built,
         default_pier: selectedBoat.default_pier,
@@ -796,12 +796,12 @@ export default function PartnersPage() {
                 {editMode ? (
                   <input 
                     type="number"
-                    value={selectedBoat.max_guests || ''} 
-                    onChange={(e) => setSelectedBoat({...selectedBoat, max_guests: Number(e.target.value)})}
+                    value={selectedBoat.max_pax_day || ''} 
+                    onChange={(e) => setSelectedBoat({...selectedBoat, max_pax_day: Number(e.target.value)})}
                     style={{ width: '100%', padding: '4px', border: '1px solid #d1d5db', borderRadius: '4px' }}
                   />
                 ) : (
-                  <div style={{ fontWeight: '600' }}>{selectedBoat.max_guests || '-'}</div>
+                  <div style={{ fontWeight: '600' }}>{selectedBoat.max_pax_day || '-'}</div>
                 )}
               </div>
               <div style={{ backgroundColor: '#f9fafb', padding: '12px', borderRadius: '8px' }}>
