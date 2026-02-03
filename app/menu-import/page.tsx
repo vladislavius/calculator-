@@ -96,28 +96,62 @@ export default function MenuImportPage() {
     setLoading(true);
 
     try {
-      // Create menu
-      const { data: menu, error: menuError } = await supabase
+      // Check if menu already exists
+      const { data: existingMenu } = await supabase
         .from('partner_menus')
-        .insert({
-          partner_id: selectedPartnerId,
-          boat_id: selectedBoatId,
-          name: parsedMenu.menu_name || 'Menu',
-          type: menuType,
-          price_per_person: menuType === 'paid' ? pricePerPerson : null,
-          notes: parsedMenu.notes,
-          conditions: parsedMenu.notes
-        })
         .select('id')
-        .single();
+        .eq('partner_id', selectedPartnerId)
+        .is('boat_id', selectedBoatId ? selectedBoatId : null)
+        .maybeSingle();
 
-      if (menuError) throw menuError;
+      let menuId: number;
+
+      if (existingMenu) {
+        // Delete old sets and update menu
+        await supabase.from('menu_sets').delete().eq('menu_id', existingMenu.id);
+        
+        const { error: updateError } = await supabase
+          .from('partner_menus')
+          .update({
+            name: parsedMenu.menu_name || 'Menu',
+            type: menuType,
+            price_per_person: menuType === 'paid' ? pricePerPerson : null,
+            notes: parsedMenu.notes,
+            conditions: parsedMenu.notes,
+          conditions_ru: parsedMenu.notes_ru || parsedMenu.notes
+          })
+          .eq('id', existingMenu.id);
+
+        if (updateError) throw updateError;
+        menuId = existingMenu.id;
+        console.log('Updated existing menu:', menuId);
+      } else {
+        // Create new menu
+        const { data: menu, error: menuError } = await supabase
+          .from('partner_menus')
+          .insert({
+            partner_id: selectedPartnerId,
+            boat_id: selectedBoatId,
+            name: parsedMenu.menu_name || 'Menu',
+            type: menuType,
+            price_per_person: menuType === 'paid' ? pricePerPerson : null,
+            notes: parsedMenu.notes,
+            conditions: parsedMenu.notes,
+          conditions_ru: parsedMenu.notes_ru || parsedMenu.notes
+          })
+          .select('id')
+          .single();
+
+        if (menuError) throw menuError;
+        menuId = menu.id;
+        console.log('Created new menu:', menuId);
+      }
 
       // Create sets
       for (let i = 0; i < parsedMenu.sets.length; i++) {
         const set = parsedMenu.sets[i];
         await supabase.from('menu_sets').insert({
-          menu_id: menu.id,
+          menu_id: menuId,
           name: set.name,
           name_ru: set.name_ru,
           category: set.category,
@@ -128,7 +162,7 @@ export default function MenuImportPage() {
         });
       }
 
-      setMessage(`✅ Меню сохранено! ${parsedMenu.sets.length} сетов добавлено.`);
+      setMessage(`✅ Меню ${existingMenu ? 'обновлено' : 'сохранено'}! ${parsedMenu.sets.length} сетов.`);
       setParsedMenu(null);
       setMenuText('');
     } catch (error: any) {

@@ -1281,9 +1281,9 @@ export default function Home() {
                     <p style={{ margin: '0 0 12px', fontWeight: '600', color: '#166534' }}>✅ Включено в стоимость — выберите сеты:</p>
                     {(() => {
                       const menu = partnerMenus.find(pm => pm.partner_id === selectedBoat?.partner_id);
-                      return menu?.conditions ? (
+                      return (menu?.conditions_ru || menu?.conditions) ? (
                         <div style={{ marginBottom: '12px', padding: '10px 14px', backgroundColor: '#fef3c7', borderRadius: '8px', border: '1px solid #fcd34d', fontSize: '13px', color: '#92400e' }}>
-                          <strong>⚠️ Условия:</strong> {menu.conditions}
+                          <strong>⚠️ Условия:</strong> {menu.conditions_ru || menu.conditions}
                         </div>
                       ) : null;
                     })()}

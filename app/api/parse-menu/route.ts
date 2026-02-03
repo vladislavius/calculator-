@@ -35,7 +35,8 @@ RETURN JSON:
       "dishes_ru": ["Том Ям с креветками", "Жареная курица с орехами кешью", "Жареные куриные крылышки", "Рис на пару", "Десерт дня"]
     }
   ],
-  "notes": "IMPORTANT conditions and restrictions, e.g.: 'Minimum 4 sets of same type', 'Speed boats: restaurant lunch - 500 THB voucher per person', 'Full day charter only', 'Minimum order 2 sets'"
+  "notes": "IMPORTANT conditions in ENGLISH",
+  "notes_ru": "IMPORTANT conditions translated to RUSSIAN, e.g.: 'Меню Thai, Vegetarian, Western и Kid только для ПОЛНОДНЕВНЫХ чартеров. Для спидботов: обед в ресторане — ваучер 500 THB/чел. Сообщите об аллергиях или диетических требованиях.'"
 }
 
 CATEGORIES:
