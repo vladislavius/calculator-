@@ -828,8 +828,8 @@ export default function ImportPage() {
               agent_price: route.agent_price || route.base_price || oldPrice.agent_price,
               client_price: route.base_price || oldPrice.client_price,
               fuel_surcharge: route.fuel_surcharge ?? oldPrice.fuel_surcharge ?? 0,
-              extra_pax_price: oldPrice.extra_pax_price || 2000,
-              base_pax: oldPrice.base_pax || 2,
+              extra_pax_price: route.extra_pax_price || boat.extra_pax_price || oldPrice.extra_pax_price || 2000,
+              base_pax: route.base_pax || boat.base_pax || oldPrice.base_pax || 2,
               valid_from: today,
               valid_to: '2027-12-31'
             });
@@ -847,8 +847,8 @@ export default function ImportPage() {
               agent_price: route.agent_price || route.base_price || 50000,
               client_price: route.base_price || 50000,
               fuel_surcharge: route.fuel_surcharge || 0,
-              extra_pax_price: 2000,
-              base_pax: 2,
+              extra_pax_price: route.extra_pax_price || boat.extra_pax_price || 2000,
+              base_pax: route.base_pax || boat.base_pax || 2,
               valid_from: today,
               valid_to: '2027-12-31'
             });
