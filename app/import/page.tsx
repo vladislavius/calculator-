@@ -672,7 +672,7 @@ export default function ImportPage() {
           .from('boats')
           .select('*')
           .eq('partner_id', partnerId)
-          .ilike('name', '%' + boat.name.split(' ').pop() + '%');
+          .eq('name', boat.name);
         
         let boatId: number = 0;
         
@@ -686,13 +686,17 @@ export default function ImportPage() {
             model: boat.model || existingBoats[0].model,
             length_ft: boat.length_ft || existingBoats[0].length_ft,
             year_built: boat.year_built || existingBoats[0].year_built,
-            cabins: boat.cabins || existingBoats[0].cabins
+            cabins: boat.cabins || existingBoats[0].cabins,
+            default_pier: boat.default_pier || existingBoats[0].default_pier,
+            max_pax_day: boat.max_pax_day || existingBoats[0].max_pax_day,
+            max_pax_overnight: boat.max_pax_overnight || existingBoats[0].max_pax_overnight
           }).eq('id', boatId);
           
         } else {
           // Create new boat
-          console.log('Creating new boat:', boat.name);
-          const boatCode = extractedData.partner_name.substring(0, 3).toUpperCase() + '-' + boat.name.replace(/\s/g, '').substring(0, 8);
+          console.log('Creating new boat:', boat.name, 'pier:', boat.default_pier);
+          const partnerPrefix = (selectedPartnerName || extractedData.partner_name || 'UNK').substring(0, 3).toUpperCase();
+          const boatCode = partnerPrefix + '-' + boat.name.replace(/\s/g, '').toUpperCase().substring(0, 15);
           
           const { data: newBoat, error: boatError } = await supabase
             .from('boats')
@@ -707,6 +711,7 @@ export default function ImportPage() {
               cabins: boat.cabins,
               max_pax_day: boat.max_pax_day || 10,
               max_pax_overnight: boat.max_pax_overnight || 6,
+              default_pier: boat.default_pier || null,
               active: true
             })
             .select('id')
@@ -715,7 +720,7 @@ export default function ImportPage() {
           if (boatError) {
             console.error('Boat insert error:', boatError);
             console.error('Boat data:', { code: boatCode, name: boat.name, partner_id: partnerId });
-            // Try to get existing boat by code
+            // Try to get existing boat by code OR by name+partner
             const { data: existingByCode } = await supabase
               .from('boats')
               .select('id')
@@ -725,7 +730,20 @@ export default function ImportPage() {
               console.log('Found existing boat by code:', existingByCode.id);
               boatId = existingByCode.id;
             } else {
-              continue;
+              // Try by name and partner
+              const { data: existingByName } = await supabase
+                .from('boats')
+                .select('id')
+                .eq('name', boat.name)
+                .eq('partner_id', partnerId)
+                .single();
+              if (existingByName) {
+                console.log('Found existing boat by name:', existingByName.id);
+                boatId = existingByName.id;
+              } else {
+                console.error('Could not find or create boat:', boat.name);
+                continue;
+              }
             }
           } else if (newBoat) {
             boatId = newBoat.id;
