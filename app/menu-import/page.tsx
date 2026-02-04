@@ -21,6 +21,7 @@ interface ParsedMenu {
   menu_name: string;
   sets: MenuSet[];
   notes: string;
+  notes_ru?: string;
 }
 
 export default function MenuImportPage() {
