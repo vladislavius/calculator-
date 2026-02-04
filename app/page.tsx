@@ -390,14 +390,14 @@ export default function Home() {
 
     try {
       // Load boat drinks from partner
-      const { data: drinksData } = await supabase
+      const { data: drinksData } = await getSupabase()
         .from('boat_drinks')
         .select('*')
         .eq('partner_id', boat.partner_id);
       setBoatDrinks(drinksData || []);
       
       // Load route fees for this route
-      const { data: routeData } = await supabase
+      const { data: routeData } = await getSupabase()
         .from('routes')
         .select('id')
         .ilike('name', '%' + boat.route_name.split(' ')[0] + '%')
@@ -405,7 +405,7 @@ export default function Home() {
         .single();
       
       if (routeData) {
-        const { data: feesData } = await supabase
+        const { data: feesData } = await getSupabase()
           .from('route_fees')
           .select('*')
           .eq('route_id', routeData.id);
@@ -417,7 +417,7 @@ export default function Home() {
       }
       
       // Load boat menu (old system)
-      const { data: menuData } = await supabase
+      const { data: menuData } = await getSupabase()
         .from('boat_menu')
         .select('*')
         .or('partner_id.eq.' + boat.partner_id + ',boat_id.eq.' + boat.boat_id);
@@ -444,7 +444,7 @@ export default function Home() {
         }))]);
       }
 
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from('boat_options')
         .select(`
           id,

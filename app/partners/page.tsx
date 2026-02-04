@@ -48,14 +48,14 @@ export default function PartnersPage() {
     setEditMode(false);
     
     // Load all routes for dropdown
-    const { data: routes } = await supabase
+    const { data: routes } = await getSupabase()
       .from('routes')
       .select('*')
       .order('name');
     if (routes) setAllRoutes(routes);
     
     // Load prices
-    const { data: prices } = await supabase
+    const { data: prices } = await getSupabase()
       .from('route_prices')
       .select('*, routes(*)')
       .eq('boat_id', boat.id)
@@ -63,7 +63,7 @@ export default function PartnersPage() {
     if (prices) setBoatPrices(prices);
     
     // Load boat options
-    const { data: options } = await supabase
+    const { data: options } = await getSupabase()
       .from('boat_options')
       .select('*, options_catalog(*)')
       .eq('boat_id', boat.id);
@@ -99,7 +99,7 @@ export default function PartnersPage() {
     if (!selectedBoat) return;
     setSaving(true);
     
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('boats')
       .update({
         name: selectedBoat.name,
@@ -125,7 +125,7 @@ export default function PartnersPage() {
 
   // Update price
   const updatePrice = async (priceId: number, field: string, value: number | string) => {
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('route_prices')
       .update({ [field]: value })
       .eq('id', priceId);
@@ -158,7 +158,7 @@ export default function PartnersPage() {
     
     // If creating new route
     if (newPriceRoute === 'new' && newRouteName.trim()) {
-      const { data: newRoute, error: routeError } = await supabase
+      const { data: newRoute, error: routeError } = await getSupabase()
         .from('routes')
         .insert({ name: newRouteName.trim() })
         .select('id')
@@ -172,7 +172,7 @@ export default function PartnersPage() {
       setAllRoutes([...allRoutes, { id: newRoute.id, name: newRouteName.trim() }]);
     }
     
-    const { data: newPrice, error } = await supabase
+    const { data: newPrice, error } = await getSupabase()
       .from('route_prices')
       .insert({
         boat_id: selectedBoat.id,
@@ -204,7 +204,7 @@ export default function PartnersPage() {
   const deletePrice = async (priceId: number) => {
     if (!confirm('Удалить эту цену?')) return;
     
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('route_prices')
       .delete()
       .eq('id', priceId);
@@ -217,7 +217,7 @@ export default function PartnersPage() {
 
   // Toggle boat option (included/paid)
   const toggleBoatOption = async (optionId: number, field: string, value: boolean | number) => {
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('boat_options')
       .update({ [field]: value })
       .eq('id', optionId);
@@ -231,7 +231,7 @@ export default function PartnersPage() {
 
   // Delete boat option
   const deleteBoatOption = async (optionId: number) => {
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('boat_options')
       .delete()
       .eq('id', optionId);
@@ -571,7 +571,7 @@ export default function PartnersPage() {
     
     try {
       // Load partner menus
-      const { data: menus } = await supabase
+      const { data: menus } = await getSupabase()
         .from('partner_menus')
         .select('*')
         .eq('partner_id', partnerId)
@@ -582,7 +582,7 @@ export default function PartnersPage() {
       // Load all menu sets for these menus
       if (menus && menus.length > 0) {
         const menuIds = menus.map(m => m.id);
-        const { data: sets } = await supabase
+        const { data: sets } = await getSupabase()
           .from('menu_sets')
           .select('*')
           .in('menu_id', menuIds)
@@ -620,7 +620,7 @@ export default function PartnersPage() {
     
     try {
       // Update menu
-      await supabase
+      await getSupabase()
         .from('partner_menus')
         .update({
           name: editingMenu.name,
@@ -695,7 +695,7 @@ export default function PartnersPage() {
     if (!menuEditorPartnerId) return;
     
     try {
-      const { data: newMenu } = await supabase
+      const { data: newMenu } = await getSupabase()
         .from('partner_menus')
         .insert({
           partner_id: menuEditorPartnerId,

@@ -102,7 +102,7 @@ export default function MenuImportPage() {
 
     try {
       // Check if menu already exists
-      const { data: existingMenu } = await supabase
+      const { data: existingMenu } = await getSupabase()
         .from('partner_menus')
         .select('id')
         .eq('partner_id', selectedPartnerId)
@@ -115,7 +115,7 @@ export default function MenuImportPage() {
         // Delete old sets and update menu
         await getSupabase().from('menu_sets').delete().eq('menu_id', existingMenu.id);
         
-        const { error: updateError } = await supabase
+        const { error: updateError } = await getSupabase()
           .from('partner_menus')
           .update({
             name: parsedMenu.menu_name || 'Menu',
@@ -132,7 +132,7 @@ export default function MenuImportPage() {
         console.log('Updated existing menu:', menuId);
       } else {
         // Create new menu
-        const { data: menu, error: menuError } = await supabase
+        const { data: menu, error: menuError } = await getSupabase()
           .from('partner_menus')
           .insert({
             partner_id: selectedPartnerId,
