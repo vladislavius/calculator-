@@ -163,7 +163,7 @@ export default function ImportPage() {
 
   // Fetch import history
   const fetchImportHistory = async () => {
-    const { data } = await supabase
+    const { data } = await getSupabase()
       .from('import_history')
       .select('*')
       .order('created_at', { ascending: false })
@@ -187,7 +187,7 @@ export default function ImportPage() {
 
   // Fetch existing partners on mount
   const fetchExistingPartners = async () => {
-    const { data } = await supabase
+    const { data } = await getSupabase()
       .from('partners')
       .select('id, name, contact_phone, commission_percent')
       .order('name');
@@ -617,7 +617,7 @@ export default function ImportPage() {
         const partnerFirstWord = extractedData.partner_name.split(' ')[0];
         console.log('Looking for partner containing:', partnerFirstWord);
         
-        const { data: existingPartners } = await supabase
+        const { data: existingPartners } = await getSupabase()
           .from('partners')
           .select('*')
           .ilike('name', '%' + partnerFirstWord + '%');
@@ -643,7 +643,7 @@ export default function ImportPage() {
         } else {
           // Create new partner
           console.log('Creating new partner:', extractedData.partner_name);
-          const { data: newPartner, error: insertError } = await supabase
+          const { data: newPartner, error: insertError } = await getSupabase()
             .from('partners')
             .insert({
               name: extractedData.partner_name,
@@ -668,7 +668,7 @@ export default function ImportPage() {
         console.log('Processing boat:', boat.name);
         
         // Find existing boat by name and partner
-        const { data: existingBoats } = await supabase
+        const { data: existingBoats } = await getSupabase()
           .from('boats')
           .select('*')
           .eq('partner_id', partnerId)
@@ -698,7 +698,7 @@ export default function ImportPage() {
           const partnerPrefix = (selectedPartnerName || extractedData.partner_name || 'UNK').substring(0, 3).toUpperCase();
           const boatCode = partnerPrefix + '-' + boat.name.replace(/\s/g, '').toUpperCase().substring(0, 15);
           
-          const { data: newBoat, error: boatError } = await supabase
+          const { data: newBoat, error: boatError } = await getSupabase()
             .from('boats')
             .insert({
               code: boatCode,
@@ -721,7 +721,7 @@ export default function ImportPage() {
             console.error('Boat insert error:', boatError);
             console.error('Boat data:', { code: boatCode, name: boat.name, partner_id: partnerId });
             // Try to get existing boat by code OR by name+partner
-            const { data: existingByCode } = await supabase
+            const { data: existingByCode } = await getSupabase()
               .from('boats')
               .select('id')
               .eq('code', boatCode)
@@ -731,7 +731,7 @@ export default function ImportPage() {
               boatId = existingByCode.id;
             } else {
               // Try by name and partner
-              const { data: existingByName } = await supabase
+              const { data: existingByName } = await getSupabase()
                 .from('boats')
                 .select('id')
                 .eq('name', boat.name)
@@ -762,7 +762,7 @@ export default function ImportPage() {
           console.log('Processing route:', route.destination, 'for boat:', boat.name);
           
           // Find or create route - use exact match first, then create new
-          const { data: exactMatch } = await supabase
+          const { data: exactMatch } = await getSupabase()
             .from('routes')
             .select('id')
             .ilike('name', route.destination.trim());
@@ -774,7 +774,7 @@ export default function ImportPage() {
             console.log('Using exact match route ID:', routeId);
           } else {
             // Create new route with full name
-            const { data: newRoute, error: routeError } = await supabase
+            const { data: newRoute, error: routeError } = await getSupabase()
               .from('routes')
               .insert({
                 name: route.destination,
@@ -798,7 +798,7 @@ export default function ImportPage() {
           const today = new Date().toISOString().split('T')[0];
           
           // Find existing active price for this boat + route + season
-          const { data: existingPrices } = await supabase
+          const { data: existingPrices } = await getSupabase()
             .from('route_prices')
             .select('*')
             .eq('boat_id', boatId)
@@ -813,7 +813,7 @@ export default function ImportPage() {
             const oldPrice = existingPrices[0];
             console.log('Updating price - closing old ID:', oldPrice.id);
             
-            await supabase
+            await getSupabase()
               .from('route_prices')
               .update({ valid_to: today })
               .eq('id', oldPrice.id);
@@ -864,7 +864,7 @@ export default function ImportPage() {
             console.log('Processing feature:', feature.name);
             
             // Find option in catalog by name (partial match)
-            const { data: catalogOption } = await supabase
+            const { data: catalogOption } = await getSupabase()
               .from('options_catalog')
               .select('id, name_en')
               .ilike('name_en', '%' + feature.name + '%')
@@ -874,7 +874,7 @@ export default function ImportPage() {
             // If not found by full name, try first two words
             let matchedOption = catalogOption;
             if (!matchedOption && feature.name.split(' ').length > 1) {
-              const { data: partialMatch } = await supabase
+              const { data: partialMatch } = await getSupabase()
                 .from('options_catalog')
                 .select('id, name_en')
                 .ilike('name_en', '%' + feature.name.split(' ').slice(0, 2).join(' ') + '%')
@@ -888,7 +888,7 @@ export default function ImportPage() {
               const firstWord = feature.name.split(' ')[0].toLowerCase();
               // Skip if first word is too generic
               if (!['sea', 'life', 'water', 'soft', 'hand'].includes(firstWord)) {
-                const { data: firstWordMatch } = await supabase
+                const { data: firstWordMatch } = await getSupabase()
                   .from('options_catalog')
                   .select('id, name_en')
                   .ilike('name_en', '%' + firstWord + '%')
@@ -903,7 +903,7 @@ export default function ImportPage() {
             if (!catalogOption2) {
               console.log('Option not found in catalog, creating:', feature.name);
               // Create in options_catalog first
-              const { data: newCatalogOpt, error: catError } = await supabase
+              const { data: newCatalogOpt, error: catError } = await getSupabase()
                 .from('options_catalog')
                 .insert({
                   code: feature.name.toLowerCase().replace(/\s+/g, '_').substring(0, 30),
@@ -934,7 +934,7 @@ export default function ImportPage() {
               console.log('Found in catalog:', catalogOption2.name_en, 'ID:', catalogOption2.id);
               
               // Check if boat_option already exists
-              const { data: existingOpt } = await supabase
+              const { data: existingOpt } = await getSupabase()
                 .from('boat_options')
                 .select('id')
                 .eq('boat_id', boatId)
@@ -975,7 +975,7 @@ export default function ImportPage() {
           if (!boatId) continue;
           
           // Check if rule already exists
-          const { data: existingRule } = await supabase
+          const { data: existingRule } = await getSupabase()
             .from('boat_pricing_rules')
             .select('id')
             .eq('boat_id', boatId)
@@ -1016,7 +1016,7 @@ export default function ImportPage() {
         if (boatId) {
           for (const item of extractedData.included) {
             // Find in catalog
-            const { data: catalogOpt } = await supabase
+            const { data: catalogOpt } = await getSupabase()
               .from('options_catalog')
               .select('id')
               .ilike('name_en', '%' + item.name.split(' ')[0] + '%')
@@ -1024,7 +1024,7 @@ export default function ImportPage() {
               .maybeSingle();
             
             if (catalogOpt) {
-              const { data: existingOpt } = await supabase
+              const { data: existingOpt } = await getSupabase()
                 .from('boat_options')
                 .select('id')
                 .eq('boat_id', boatId)
@@ -1051,7 +1051,7 @@ export default function ImportPage() {
         const boatId = Object.values(savedBoatIds)[0] as number;
         if (boatId) {
           for (const extra of extractedData.optional_extras) {
-            const { data: catalogOpt } = await supabase
+            const { data: catalogOpt } = await getSupabase()
               .from('options_catalog')
               .select('id')
               .ilike('name_en', '%' + extra.name.split(' ')[0] + '%')
@@ -1059,7 +1059,7 @@ export default function ImportPage() {
               .maybeSingle();
             
             if (catalogOpt) {
-              const { data: existingOpt } = await supabase
+              const { data: existingOpt } = await getSupabase()
                 .from('boat_options')
                 .select('id')
                 .eq('boat_id', boatId)
