@@ -12,7 +12,6 @@ export async function POST(request: NextRequest) {
       baseURL: 'https://api.deepseek.com/v1'
     });
     const { text } = await request.json();
-    console.log('Received text length:', text?.length);
 
     const systemPrompt = `You are a strict boat charter contract parser. 
 
@@ -220,15 +219,9 @@ DO NOT ADD items like "Life Jackets", "Insurance", "Captain" unless EXPLICITLY l
     });
 
     let content = response.choices[0].message.content || '{}';
-    console.log('AI response length:', content.length);
     content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
 
     const data = JSON.parse(content);
-    console.log('Parsed - boats:', data.boats?.length, 'routes:', data.routes?.length, 'pricing_rules:', data.pricing_rules?.length, 'included:', data.included?.length, 'extras:', data.optional_extras?.length);
-    console.log('Routes:', JSON.stringify(data.routes, null, 2));
-    console.log('Pricing:', JSON.stringify(data.pricing_rules, null, 2));
-    console.log('Extras:', JSON.stringify(data.optional_extras, null, 2));
-    console.log('Included:', JSON.stringify(data.included, null, 2));
 
     return NextResponse.json({ success: true, data });
   } catch (error: any) {

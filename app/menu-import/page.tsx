@@ -129,7 +129,6 @@ export default function MenuImportPage() {
 
         if (updateError) throw updateError;
         menuId = existingMenu.id;
-        console.log('Updated existing menu:', menuId);
       } else {
         // Create new menu
         const { data: menu, error: menuError } = await getSupabase()
@@ -149,7 +148,6 @@ export default function MenuImportPage() {
 
         if (menuError) throw menuError;
         menuId = menu.id;
-        console.log('Created new menu:', menuId);
       }
 
       // Create sets

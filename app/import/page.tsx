@@ -611,24 +611,20 @@ export default function ImportPage() {
       // Check if partner was pre-selected (single boat mode)
       if (selectedPartnerId) {
         partnerId = selectedPartnerId;
-        console.log('Using pre-selected partner ID:', partnerId, 'Name:', selectedPartnerName);
       } else {
         // 1. Smart partner upsert - find by partial name match
         const partnerFirstWord = extractedData.partner_name.split(' ')[0];
-        console.log('Looking for partner containing:', partnerFirstWord);
         
         const { data: existingPartners } = await getSupabase()
           .from('partners')
           .select('*')
           .ilike('name', '%' + partnerFirstWord + '%');
         
-        console.log('Found partners:', existingPartners);
         
         if (existingPartners && existingPartners.length > 0) {
           // Partner exists - update with new data
           const existing = existingPartners[0];
           partnerId = existing.id;
-          console.log('Updating existing partner:', existing.name, 'ID:', partnerId);
           
           await getSupabase().from('partners').update({
             contact_phone: extractedData.partner_phone || existing.contact_phone,
@@ -642,7 +638,6 @@ export default function ImportPage() {
           
         } else {
           // Create new partner
-          console.log('Creating new partner:', extractedData.partner_name);
           const { data: newPartner, error: insertError } = await getSupabase()
             .from('partners')
             .insert({
@@ -656,7 +651,6 @@ export default function ImportPage() {
 
           if (insertError) throw insertError;
           partnerId = newPartner.id;
-          console.log('Created partner ID:', partnerId);
         }
       }
 
@@ -665,7 +659,6 @@ export default function ImportPage() {
       const savedBoatIds: Record<string, number> = {};
       
       for (const boat of extractedData.boats) {
-        console.log('Processing boat:', boat.name);
         
         // Find existing boat by name and partner
         const { data: existingBoats } = await getSupabase()
@@ -679,7 +672,6 @@ export default function ImportPage() {
         if (existingBoats && existingBoats.length > 0) {
           // Update existing boat
           boatId = existingBoats[0].id;
-          console.log('Updating existing boat:', existingBoats[0].name, 'ID:', boatId);
           
           await getSupabase().from('boats').update({
             boat_type: boat.type || existingBoats[0].boat_type,
@@ -694,7 +686,6 @@ export default function ImportPage() {
           
         } else {
           // Create new boat
-          console.log('Creating new boat:', boat.name, 'pier:', boat.default_pier);
           const partnerPrefix = (selectedPartnerName || extractedData.partner_name || 'UNK').substring(0, 3).toUpperCase();
           const boatCode = partnerPrefix + '-' + boat.name.replace(/\s/g, '').toUpperCase().substring(0, 15);
           
@@ -727,7 +718,6 @@ export default function ImportPage() {
               .eq('code', boatCode)
               .single();
             if (existingByCode) {
-              console.log('Found existing boat by code:', existingByCode.id);
               boatId = existingByCode.id;
             } else {
               // Try by name and partner
@@ -738,7 +728,6 @@ export default function ImportPage() {
                 .eq('partner_id', partnerId)
                 .single();
               if (existingByName) {
-                console.log('Found existing boat by name:', existingByName.id);
                 boatId = existingByName.id;
               } else {
                 console.error('Could not find or create boat:', boat.name);
@@ -747,7 +736,6 @@ export default function ImportPage() {
             }
           } else if (newBoat) {
             boatId = newBoat.id;
-            console.log('Created boat ID:', boatId);
           }
         }
         
@@ -756,10 +744,8 @@ export default function ImportPage() {
         // 3. Process routes and SEASONAL PRICES for this boat
         // Use routes from this specific boat (not shared extractedData.routes)
         const boatRoutes = boat.routes || [];
-        console.log('Processing', boatRoutes.length, 'routes for boat:', boat.name);
         
         for (const route of boatRoutes) {
-          console.log('Processing route:', route.destination, 'for boat:', boat.name);
           
           // Find or create route - use exact match first, then create new
           const { data: exactMatch } = await getSupabase()
@@ -771,7 +757,6 @@ export default function ImportPage() {
           
           if (exactMatch && exactMatch.length > 0) {
             routeId = exactMatch[0].id;
-            console.log('Using exact match route ID:', routeId);
           } else {
             // Create new route with full name
             const { data: newRoute, error: routeError } = await getSupabase()
@@ -790,7 +775,6 @@ export default function ImportPage() {
               continue;
             }
             routeId = newRoute.id;
-            console.log('Created route ID:', routeId);
           }
 
           // SEASONAL PRICE LOGIC
@@ -811,7 +795,6 @@ export default function ImportPage() {
           if (existingPrices && existingPrices.length > 0) {
             // Close old price (create version history)
             const oldPrice = existingPrices[0];
-            console.log('Updating price - closing old ID:', oldPrice.id);
             
             await getSupabase()
               .from('route_prices')
@@ -833,11 +816,9 @@ export default function ImportPage() {
               valid_from: today,
               valid_to: '2027-12-31'
             });
-            console.log('Created new price version');
             
           } else {
             // Create new price
-            console.log('Creating new price');
             await getSupabase().from('route_prices').insert({
               boat_id: boatId,
               route_id: routeId,
@@ -861,7 +842,6 @@ export default function ImportPage() {
           for (const feature of allFeatures) {
             if (!feature.name) continue;
             
-            console.log('Processing feature:', feature.name);
             
             // Find option in catalog by name (partial match)
             const { data: catalogOption } = await getSupabase()
@@ -901,7 +881,6 @@ export default function ImportPage() {
             const catalogOption2 = matchedOption;
             
             if (!catalogOption2) {
-              console.log('Option not found in catalog, creating:', feature.name);
               // Create in options_catalog first
               const { data: newCatalogOpt, error: catError } = await getSupabase()
                 .from('options_catalog')
@@ -931,7 +910,6 @@ export default function ImportPage() {
                 available: true
               });
             } else {
-              console.log('Found in catalog:', catalogOption2.name_en, 'ID:', catalogOption2.id);
               
               // Check if boat_option already exists
               const { data: existingOpt } = await getSupabase()
@@ -961,13 +939,11 @@ export default function ImportPage() {
               }
             }
           }
-          console.log('Finished processing boat options');
         }
       }
 
       // 5. Save pricing rules (complex pricing with seasons/guests/duration)
       if (extractedData.pricing_rules && extractedData.pricing_rules.length > 0) {
-        console.log('Saving pricing rules:', extractedData.pricing_rules.length);
         
         for (const rule of extractedData.pricing_rules) {
           // Find boat ID by name
@@ -1007,7 +983,6 @@ export default function ImportPage() {
             });
           }
         }
-        console.log('Pricing rules saved!');
       }
       
       // 6. Save included items as boat options
@@ -1101,7 +1076,6 @@ export default function ImportPage() {
         raw_data: extractedData,
         status: 'success'
       });
-      console.log('Saved to import history');
       
       setSaveStatus('✅ Успешно! Партнёр, лодки, ценовые правила (' + (extractedData.pricing_rules?.length || 0) + ' вариантов) и опции сохранены.');
     } catch (error: any) {

@@ -12,7 +12,6 @@ export async function POST(request: NextRequest) {
       baseURL: 'https://api.deepseek.com/v1'
     });
     const { text } = await request.json();
-    console.log('Parsing menu, text length:', text?.length);
 
     const systemPrompt = `You are a menu parser for yacht charter companies.
 
@@ -64,11 +63,9 @@ Extract ALL sets from the menu. Be thorough.`;
     });
 
     let content = response.choices[0].message.content || '{}';
-    console.log('AI response length:', content.length);
     content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
 
     const data = JSON.parse(content);
-    console.log('Parsed menu sets:', data.sets?.length);
 
     return NextResponse.json({ success: true, data });
   } catch (error: any) {
