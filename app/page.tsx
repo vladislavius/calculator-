@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
 let _supabase: ReturnType<typeof createClient> | null = null;
-const getSupabase = () => {
+const getSupabase = (): any => {
   if (!_supabase) {
     _supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || '',
@@ -370,7 +370,7 @@ export default function Home() {
   const handleSearch = async () => {
     setLoading(true);
     try {
-      const { data, error } = await (getSupabase() as any).rpc('search_available_boats', {
+      const { data, error } = await getSupabase().rpc('search_available_boats', {
         p_date: searchDate,
         p_guests: totalGuests,
         p_time_slot: timeSlot,
