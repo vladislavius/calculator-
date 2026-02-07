@@ -1241,7 +1241,7 @@ export default function Home() {
                   </div>
                   <div style={{ padding: '12px', backgroundColor: '#f8fafc', borderRadius: '8px', marginBottom: '12px' }}>
                     <p style={{ margin: 0, fontSize: '14px', color: '#374151' }}>🗺️ {boat.route_name}</p>
-                    {boat.season && <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#8b5cf6' }}>{seasonLabel(boat.season)}</p>}
+                    {boat.season && <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#8b5cf6' }}>{seasonLabel(boat.season || "")}</p>}
                     {boat.fuel_surcharge > 0 && (
                       <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#f59e0b' }}>⛽ +{boat.fuel_surcharge.toLocaleString()} THB топливо</p>
                     )}
@@ -1320,7 +1320,7 @@ export default function Home() {
                   <div>
                     <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold' }}>🚢 {selectedBoat.boat_name}</h2>
                     <p style={{ margin: '8px 0 0', fontSize: '16px', opacity: 0.9 }}>📍 {selectedBoat.route_name}</p>
-                    <p style={{ margin: '4px 0 0', fontSize: '14px', opacity: 0.8 }}>{selectedBoat.partner_name} • {selectedBoat.duration_hours || 8}ч • до {selectedBoat.max_guests} гостей{selectedBoat.cabin_count > 0 && (" • " + selectedBoat.cabin_count + " кают")}{selectedBoat.season && (" • " + seasonLabel(selectedBoat.season))}</p>
+                    <p style={{ margin: '4px 0 0', fontSize: '14px', opacity: 0.8 }}>{selectedBoat.partner_name} • {selectedBoat.duration_hours || 8}ч • до {selectedBoat.max_guests} гостей{selectedBoat.cabin_count > 0 && (" • " + selectedBoat.cabin_count + " кают")}{selectedBoat.season && (" • " + seasonLabel(selectedBoat.season || ""))}</p>
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <p style={{ margin: 0, fontSize: '14px', opacity: 0.8 }}>Базовая цена</p>

@@ -18,6 +18,9 @@ export default function PartnersPage() {
   const [boats, setBoats] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedPartners, setExpandedPartners] = useState<Set<number>>(new Set());
+  const [editingPartner, setEditingPartner] = useState<any>(null);
+  const [editForm, setEditForm] = useState<any>({});
+
   const [selectedBoat, setSelectedBoat] = useState<any>(null);
   const [boatRoutes, setBoatRoutes] = useState<any[]>([]);
   const [boatPrices, setBoatPrices] = useState<any[]>([]);
@@ -725,6 +728,38 @@ export default function PartnersPage() {
     } catch (error) {
       console.error('Error deleting menu:', error);
     }
+  };
+
+
+  const startEditPartner = async (partner: any) => {
+    const { data } = await getSupabase().from('partners').select('*').eq('id', partner.id).single();
+    setEditForm(data || partner);
+    setEditingPartner(partner.id);
+  };
+
+  const savePartner = async () => {
+    if (!editingPartner) return;
+    const { error } = await getSupabase().from('partners').update({
+      name: editForm.name,
+      contact_name: editForm.contact_name || null,
+      contact_phone: editForm.contact_phone || null,
+      contact_email: editForm.contact_email || null,
+      website: editForm.website || null,
+      address: editForm.address || null,
+      commission_percent: editForm.commission_percent || 15,
+      tax_id: editForm.tax_id || null,
+      bank_name: editForm.bank_name || null,
+      bank_account_name: editForm.bank_account_name || null,
+      bank_account_number: editForm.bank_account_number || null,
+      bank_branch: editForm.bank_branch || null,
+      swift_code: editForm.swift_code || null,
+      contract_valid_from: editForm.contract_valid_from || null,
+      contract_valid_until: editForm.contract_valid_until || null,
+      notes: editForm.notes || null,
+    }).eq('id', editingPartner);
+    if (error) { alert('Ошибка: ' + error.message); return; }
+    setEditingPartner(null);
+    loadData();
   };
 
   return (
@@ -1624,6 +1659,100 @@ export default function PartnersPage() {
           </div>
         </div>
       )}
+
+        {/* Partner Edit Modal */}
+        {editingPartner && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '24px', width: '600px', maxHeight: '80vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h2 style={{ margin: 0, fontSize: '18px' }}>✏️ Редактировать партнёра</h2>
+                <button onClick={() => setEditingPartner(null)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>✕</button>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Название компании *</label>
+                  <input value={editForm.name || ''} onChange={e => setEditForm({...editForm, name: e.target.value})} style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Контактное лицо</label>
+                  <input value={editForm.contact_name || ''} onChange={e => setEditForm({...editForm, contact_name: e.target.value})} style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Телефон</label>
+                  <input value={editForm.contact_phone || ''} onChange={e => setEditForm({...editForm, contact_phone: e.target.value})} style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Email</label>
+                  <input value={editForm.contact_email || ''} onChange={e => setEditForm({...editForm, contact_email: e.target.value})} style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Вебсайт</label>
+                  <input value={editForm.website || ''} onChange={e => setEditForm({...editForm, website: e.target.value})} style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Комиссия %</label>
+                  <input type="number" value={editForm.commission_percent || 15} onChange={e => setEditForm({...editForm, commission_percent: Number(e.target.value)})} style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }} />
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Адрес</label>
+                  <input value={editForm.address || ''} onChange={e => setEditForm({...editForm, address: e.target.value})} style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Tax ID</label>
+                  <input value={editForm.tax_id || ''} onChange={e => setEditForm({...editForm, tax_id: e.target.value})} style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }} />
+                </div>
+
+                <div style={{ gridColumn: '1 / -1', borderTop: '1px solid #e5e7eb', paddingTop: '12px', marginTop: '4px' }}>
+                  <h3 style={{ margin: '0 0 12px', fontSize: '15px', color: '#1e40af' }}>🏦 Банковские реквизиты</h3>
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Банк</label>
+                  <input value={editForm.bank_name || ''} onChange={e => setEditForm({...editForm, bank_name: e.target.value})} placeholder="Bangkok Bank, Kasikorn, SCB..." style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Имя на счёте</label>
+                  <input value={editForm.bank_account_name || ''} onChange={e => setEditForm({...editForm, bank_account_name: e.target.value})} style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Номер счёта</label>
+                  <input value={editForm.bank_account_number || ''} onChange={e => setEditForm({...editForm, bank_account_number: e.target.value})} style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Отделение</label>
+                  <input value={editForm.bank_branch || ''} onChange={e => setEditForm({...editForm, bank_branch: e.target.value})} style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>SWIFT код</label>
+                  <input value={editForm.swift_code || ''} onChange={e => setEditForm({...editForm, swift_code: e.target.value})} style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }} />
+                </div>
+
+                <div style={{ gridColumn: '1 / -1', borderTop: '1px solid #e5e7eb', paddingTop: '12px', marginTop: '4px' }}>
+                  <h3 style={{ margin: '0 0 12px', fontSize: '15px', color: '#1e40af' }}>📋 Контракт</h3>
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Контракт с</label>
+                  <input type="date" value={editForm.contract_valid_from || ''} onChange={e => setEditForm({...editForm, contract_valid_from: e.target.value})} style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Контракт до</label>
+                  <input type="date" value={editForm.contract_valid_until || ''} onChange={e => setEditForm({...editForm, contract_valid_until: e.target.value})} style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }} />
+                </div>
+
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Заметки</label>
+                  <textarea value={editForm.notes || ''} onChange={e => setEditForm({...editForm, notes: e.target.value})} rows={3} style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', resize: 'vertical' }} />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+                <button onClick={() => setEditingPartner(null)} style={{ padding: '10px 20px', border: '1px solid #d1d5db', borderRadius: '8px', backgroundColor: 'white', cursor: 'pointer', fontSize: '14px' }}>Отмена</button>
+                <button onClick={savePartner} style={{ padding: '10px 20px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>💾 Сохранить</button>
+              </div>
+            </div>
+          </div>
+        )}
+
     </div>
   );
 }
