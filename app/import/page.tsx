@@ -167,7 +167,7 @@ export default function ImportPage() {
       .from('import_history')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(10);
+      .limit(300);
     if (data) setImportHistory(data);
   };
 
