@@ -36,13 +36,14 @@ EXTRACT STRUCTURE:
   "license": "if provided", 
   "phones": [{"number": "xxx", "contact_name": "if provided", "languages": ["if provided"]}],
   "emails": ["if provided"],
-  "validity": "contract validity period if mentioned"
+  "validity": "contract validity period in format YYYY-MM-DD - YYYY-MM-DD if mentioned, e.g. 2025-01-01 - 2025-12-31. If no dates found, return empty string"
 }
 
 2. BOATS - for EACH boat mentioned, INCLUDING ITS ROUTES:
 {
   "name": "exact boat name",
   "model": "model if mentioned",
+  "year_built": "year the boat was built if mentioned, e.g. 2020. Return number or null",
   "type": "catamaran/yacht/speedboat/sailing - from context",
   "length_ft": number or null,
   "cabins": number or null,
