@@ -3,10 +3,16 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
-const getSupabase = () => createClient(
+let _supabase: ReturnType<typeof createClient> | null = null;
+const getSupabase = () => {
+  if (!_supabase) {
+    _supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || '',
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-);
+    );
+  }
+  return _supabase;
+};
 
 // ==================== INTERFACES ====================
 interface SearchResult {
@@ -104,11 +110,8 @@ interface TransferOrder {
 // ==================== COMPONENT ====================
 export default function Home() {
   // Search state
-  const [searchDate, setSearchDate] = useState(() => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow.toISOString().split('T')[0];
-  });
+  const [searchDate, setSearchDate] = useState('');
+
   const [adults, setAdults] = useState(2);
   const [children, setChildren] = useState(0);
   const [extraAdults, setExtraAdults] = useState(0);
@@ -131,6 +134,7 @@ export default function Home() {
   const [minBudget, setMinBudget] = useState('');
   const [maxBudget, setMaxBudget] = useState('');
   const [sortBy, setSortBy] = useState('price_asc');
+  const [season, setSeason] = useState('auto');
 
   // Results state
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -285,6 +289,23 @@ export default function Home() {
     { value: 'overnight', label: 'С ночёвкой', hours: 24 },
   ];
 
+  const seasons = [
+    { value: 'auto', label: '📅 Авто (по дате)' },
+    { value: 'all_seasons', label: '🌍 Все сезоны' },
+    { value: 'high', label: '🔴 Высокий (Ноя-Апр)' },
+    { value: 'low', label: '🟢 Низкий (Май-Окт)' },
+    { value: 'peak', label: '🔥 Пик (15Дек-15Янв)' },
+    { value: 'dec_feb', label: 'Дек-Фев' },
+    { value: 'nov_dec', label: 'Ноя-Дек' },
+    { value: 'jan_feb', label: 'Янв-Фев' },
+    { value: 'mar_apr', label: 'Мар-Апр' },
+    { value: 'may_jun', label: 'Май-Июн' },
+    { value: 'jul_aug', label: 'Июл-Авг' },
+    { value: 'sep_oct', label: 'Сен-Окт' },
+    { value: 'chinese_new_year', label: '🧧 Китайский НГ' },
+    { value: 'chinese_national_day', label: '🇨🇳 Нац. день Китая' },
+    { value: 'international_labour_day', label: '👷 День труда' },
+  ];
   const occasions = [
     '', 'Birthday', 'Anniversary', 'Wedding', 'Proposal', 
     'Corporate Event', 'Bachelor/Bachelorette', 'Family Reunion', 'Other'
@@ -292,6 +313,13 @@ export default function Home() {
 
   // ==================== SEARCH ====================
   // Load partners data on mount
+
+  // Set date on client side to avoid hydration mismatch
+  useEffect(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    setSearchDate(tomorrow.toISOString().split('T')[0]);
+  }, []);
   useEffect(() => {
     const loadPartnersData = async () => {
       // Load catering partners & menu
@@ -348,7 +376,8 @@ export default function Home() {
         p_time_slot: timeSlot,
         p_boat_type: boatType || null,
         p_destination: destination || null,
-        p_max_budget: maxBudget ? Number(maxBudget) : null
+        p_max_budget: maxBudget ? Number(maxBudget) : null,
+        p_season: season === 'auto' ? null : season,
       });
 
       if (error) throw error;
@@ -1110,14 +1139,28 @@ export default function Home() {
               </select>
             </div>
 
+            {/* Season */}
+            <div style={{ flex: '0.9', minWidth: '130px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: '600', color: '#6b7280' }}>📅 Сезон</label>
+              <select
+                value={season}
+                onChange={(e) => setSeason(e.target.value)}
+                style={{ width: '100%', padding: '14px 16px', border: '2px solid #e5e7eb', borderRadius: '12px', fontSize: '15px', backgroundColor: '#fafafa', cursor: 'pointer', outline: 'none' }}
+              >
+                {seasons.map(s => (
+                  <option key={s.value} value={s.value}>{s.label}</option>
+                ))}
+              </select>
+            </div>
+
             {/* Sort */}
             <div style={{ flex: '0.9', minWidth: '130px' }}>
               <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: '600', color: '#6b7280' }}>📊 Сортировка</label>
-              <select 
-                value={sortBy} 
-                onChange={(e) => setSortBy(e.target.value)} 
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
                 style={{ width: '100%', padding: '14px 16px', border: '2px solid #e5e7eb', borderRadius: '12px', fontSize: '15px', backgroundColor: '#fafafa', cursor: 'pointer', outline: 'none' }}
-              >
+              > 
                 <option value="price_asc">Цена ↑</option>
                 <option value="price_desc">Цена ↓</option>
                 <option value="size">Размер</option>
@@ -1161,8 +1204,8 @@ export default function Home() {
               Найдено: {results.length} вариантов на {searchDate}
             </h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '16px' }}>
-              {results.map((boat) => (
-                <div key={`${boat.boat_id}-${boat.route_name}`} style={{ ...cardStyle, cursor: 'pointer', transition: 'transform 0.2s', border: '2px solid transparent' }}
+              {results.map((boat, idx) => (
+                <div key={idx} style={{ ...cardStyle, cursor: 'pointer', transition: 'transform 0.2s', border: '2px solid transparent' }}
                   onClick={() => openBoatDetails(boat)}
                   onMouseOver={(e) => (e.currentTarget.style.borderColor = '#2563eb')}
                   onMouseOut={(e) => (e.currentTarget.style.borderColor = 'transparent')}>
