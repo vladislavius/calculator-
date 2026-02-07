@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { SearchResult, BoatOption, SelectedExtra, CateringOrder, DrinkOrder, TransferOrder } from './lib/types';
-import { inputStyle, labelStyle, cardStyle, tabStyle } from './lib/styles';
+import { t, Lang } from "./lib/i18n";import { inputStyle, labelStyle, cardStyle, tabStyle } from './lib/styles';
 
 let _supabase: ReturnType<typeof createClient> | null = null;
 const getSupabase = (): any => {
@@ -106,7 +106,7 @@ export default function Home() {
   const [boatMarkup, setBoatMarkup] = useState(0);
   
   const [markupMode, setMarkupMode] = useState<"percent" | "fixed">("fixed");
-  const [fixedMarkup, setFixedMarkup] = useState(0);  // Partner markups
+  const [lang, setLang] = useState<Lang>("ru");  const [fixedMarkup, setFixedMarkup] = useState(0);  // Partner markups
   const [partnerMarkups, setPartnerMarkups] = useState<{[key: string]: number}>({});
   const [expandedSections, setExpandedSections] = useState<{[key: string]: boolean}>({
     boatFood: true,
@@ -565,7 +565,7 @@ export default function Home() {
   const generatePDF = () => {
     if (!selectedBoat) return;
     const totals = calculateTotals();
-    const baseBoatPrice = Number(selectedBoat?.calculated_total) || Number(selectedBoat?.base_price) || 0; const boatPriceForClient = markupMode === "fixed" ? baseBoatPrice + fixedMarkup : Math.round(baseBoatPrice * (1 + boatMarkup / 100));
+    console.log("PDF lang:", lang, "t test:", t("total.boatBase", lang));    console.log("PDF lang:", lang, "t test:", t("total.boatBase", lang));    console.log("PDF lang:", lang, "t test:", t("total.boatBase", lang));    const baseBoatPrice = Number(selectedBoat?.calculated_total) || Number(selectedBoat?.base_price) || 0; const boatPriceForClient = markupMode === "fixed" ? baseBoatPrice + fixedMarkup : Math.round(baseBoatPrice * (1 + boatMarkup / 100));
     
     // Extra guests surcharge for PDF
     const pdfAdultPrice = customAdultPrice !== null ? customAdultPrice : (selectedBoat?.extra_pax_price || 0);
@@ -578,7 +578,7 @@ export default function Home() {
     
     const includedOptions = boatOptions
       .filter(opt => opt.status === 'included')
-      .map(opt => opt.option_name_ru || opt.option_name || '')
+      .map(opt => lang === 'en' ? (opt.option_name || opt.option_name_ru || '') : (opt.option_name_ru || opt.option_name || ''))
       .filter(Boolean);
     
     const cateringItems = cateringOrders.map(order => {
@@ -589,14 +589,14 @@ export default function Home() {
     const drinkItems = drinkOrders.map(order => {
       const drink = boatDrinks.find(d => d.id === order.drinkId);
       const price = (customPrices['drink_' + order.drinkId] || order.price || 0) * order.quantity;
-      return '<tr><td>' + (drink?.name_ru || drink?.name_en || 'Напиток') + '</td><td>' + order.quantity + ' шт</td><td>' + price.toLocaleString() + ' THB</td></tr>';
+      return '<tr><td>' + (lang === 'en' ? (drink?.name_en || drink?.name_ru || 'Drink') : (drink?.name_ru || drink?.name_en || 'Напиток')) + '</td><td>' + order.quantity + ' шт</td><td>' + price.toLocaleString() + ' THB</td></tr>';
     }).join('');
     
     const toysItems = selectedToys.map((toy: any) => {
       const hours = toy.hours || 1;
       const basePrice = customPrices['toy_' + toy.id] || toy.pricePerHour || toy.pricePerDay || 0;
       const total = basePrice * hours;
-      return '<tr><td>' + (toy.nameRu || toy.name) + '</td><td>' + hours + ' ч</td><td>' + total.toLocaleString() + ' THB</td></tr>';
+      return '<tr><td>' + (lang === 'en' ? toy.name : (toy.nameRu || toy.name)) + '</td><td>' + hours + ' ч</td><td>' + total.toLocaleString() + ' THB</td></tr>';
     }).join('');
 
     // Partner watersports items for PDF - NO markup
@@ -607,51 +607,51 @@ export default function Home() {
       const days = Number(w.days) || 0;
       const total = (pricePerHour * hours) + (pricePerDay * days);
       const timeStr = hours > 0 ? hours + ' ч' : days + ' дн';
-      return '<tr><td>' + (w.nameRu || w.name || 'Водная услуга') + ' (' + (w.partnerName || '') + ')</td><td>' + timeStr + '</td><td>' + total.toLocaleString() + ' THB</td></tr>';
+      return '<tr><td>' + (lang === 'en' ? (w.name || 'Water sport') : (w.nameRu || w.name || 'Водная услуга')) + ' (' + (w.partnerName || '') + ')</td><td>' + timeStr + '</td><td>' + total.toLocaleString() + ' THB</td></tr>';
     }).join('');
     
     const allToysItems = toysItems + partnerWatersportsItems;
     
     const serviceItems = selectedServices.map((s: any) => {
       const price = customPrices['service_' + s.id] || s.price || 0;
-      return '<tr><td>' + (s.nameRu || s.name) + '</td><td>' + (s.quantity || 1) + '</td><td>' + price.toLocaleString() + ' THB</td></tr>';
+      return '<tr><td>' + (lang === 'en' ? s.name : (s.nameRu || s.name)) + '</td><td>' + (s.quantity || 1) + '</td><td>' + price.toLocaleString() + ' THB</td></tr>';
     }).join('');
     
     const feeItems = selectedFees.map((fee: any) => {
       const price = (customPrices['fee_' + fee.id] || fee.pricePerPerson || 0) * (fee.adults + fee.children);
-      return '<tr><td>' + (fee.nameRu || fee.name) + '</td><td>' + (fee.adults + fee.children) + ' чел</td><td>' + price.toLocaleString() + ' THB</td></tr>';
+      return '<tr><td>' + (lang === 'en' ? fee.name : (fee.nameRu || fee.name)) + '</td><td>' + (fee.adults + fee.children) + ' чел</td><td>' + price.toLocaleString() + ' THB</td></tr>';
     }).join('');
     
     const transferHtml = transferPickup.type !== 'none' && transferPickup.price > 0 
-      ? '<tr><td>Трансфер ' + (transferDirection === 'round_trip' ? '(туда-обратно)' : '(в одну сторону)') + '</td><td>' + (transferPickup.pickup || '-') + '</td><td>' + transferPickup.price.toLocaleString() + ' THB</td></tr>'
+      ? '<tr><td>' + t('total.transfer', lang) + ' ' + (transferDirection === 'round_trip' ? '(' + t('transfer.roundTrip', lang) + ')' : '(' + t('transfer.oneWay', lang) + ')') + '</td><td>' + (transferPickup.pickup || '-') + '</td><td>' + transferPickup.price.toLocaleString() + ' THB</td></tr>'
       : '';
 
     const printContent = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Расчёт - ' + selectedBoat.boat_name + '</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;padding:20px 30px;color:#333;max-width:550px;margin:0 auto;font-size:11px;line-height:1.4}.header{text-align:center;margin-bottom:20px;padding-bottom:15px;border-bottom:2px solid #2563eb}.logo{font-size:24px;font-weight:bold;color:#2563eb;margin-bottom:4px}.subtitle{color:#666;font-size:11px}.date{color:#888;font-size:10px;margin-top:8px}.yacht-info{background:#1e40af;color:white;padding:12px 15px;border-radius:6px;margin-bottom:15px}.yacht-name{font-size:16px;font-weight:bold;margin-bottom:8px}.yacht-details{display:flex;gap:20px;font-size:10px}.yacht-detail{display:flex;flex-direction:column}.yacht-detail-label{opacity:0.8;margin-bottom:2px}.yacht-detail-value{font-weight:600}.section{margin-bottom:12px}.section-title{font-size:11px;font-weight:bold;color:#2563eb;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #e5e7eb;text-transform:uppercase}.included-list{display:flex;flex-wrap:wrap;gap:6px}.included-item{background:#f3f4f6;color:#374151;padding:4px 10px;border-radius:4px;font-size:10px;border:1px solid #e5e7eb}table{width:100%;border-collapse:collapse;margin-top:6px;table-layout:fixed}th,td{padding:6px 8px;border-bottom:1px solid #e5e7eb;font-size:10px}th{text-align:left;font-weight:600;color:#6b7280;background:#f9fafb}th:first-child,td:first-child{width:auto}th:nth-child(2),td:nth-child(2){width:70px;text-align:center}th:last-child,td:last-child{width:90px;text-align:right}.total-section{background:#2563eb;color:white;padding:12px 15px;border-radius:6px;margin-top:15px}.total-row{display:flex;justify-content:space-between;padding:4px 0;font-size:11px}.total-row.final{font-size:13px;font-weight:bold;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.3)}.footer{margin-top:20px;text-align:center;color:#666;font-size:9px;padding-top:15px;border-top:1px solid #e5e7eb}@media print{body{padding:15px}*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}}</style></head><body>' +
-      '<div class="header"><div class="logo">ОСТРОВ СОКРОВИЩ</div><div class="subtitle">Аренда яхт на Пхукете</div><div class="date">' + new Date().toLocaleDateString('ru-RU', { day: '2-digit', month: 'long', year: 'numeric' }) + '</div></div>' +
-      '<div class="yacht-info"><div class="yacht-name">' + (selectedBoat.boat_name || 'Яхта') + '</div><div class="yacht-details"><div class="yacht-detail"><div class="yacht-detail-label">Маршрут</div><div class="yacht-detail-value">' + (selectedBoat.route_name || 'По запросу') + '</div></div><div class="yacht-detail"><div class="yacht-detail-label">Длительность</div><div class="yacht-detail-value">' + (selectedBoat.duration || '8 часов') + '</div></div><div class="yacht-detail"><div class="yacht-detail-label">Гостей</div><div class="yacht-detail-value">' + totalGuests + ' (взр: ' + (adults + extraAdults) + ', дети 3-11: ' + children3to11 + ', до 3: ' + childrenUnder3 + ')</div></div><div class="yacht-detail"><div class="yacht-detail-label">Стоимость яхты</div><div class="yacht-detail-value">' + boatPriceForClient.toLocaleString() + ' THB</div></div></div></div>' +
-      (includedOptions.length > 0 ? '<div class="section"><div class="section-title">ВКЛЮЧЕНО В СТОИМОСТЬ</div><div class="included-list">' + includedOptions.map(opt => '<span class="included-item">' + opt + '</span>').join('') + '</div></div>' : '') +
+      '<div class="header"><div class="logo">' + t('pdf.company', lang) + '</div><div class="subtitle">' + t('pdf.footer', lang) + '</div><div class="date">' + new Date().toLocaleDateString(lang === 'en' ? 'en-US' : 'ru-RU', { day: '2-digit', month: 'long', year: 'numeric' }) + '</div></div>' +
+      '<div class="yacht-info"><div class="yacht-name">' + (selectedBoat.boat_name || 'Яхта') + '</div><div class="yacht-details"><div class="yacht-detail"><div class="yacht-detail-label">' + t('pdf.route', lang) + '</div><div class="yacht-detail-value">' + (selectedBoat.route_name || 'По запросу') + '</div></div><div class="yacht-detail"><div class="yacht-detail-label">' + t('pdf.duration', lang) + '</div><div class="yacht-detail-value">' + (selectedBoat.duration || ((lang === 'en' ? '8 hours' : '8 часов'))) + '</div></div><div class="yacht-detail"><div class="yacht-detail-label">' + t('pdf.guestsLabel', lang) + '</div><div class="yacht-detail-value">' + totalGuests + ' (' + t('pdf.adults', lang) + ': ' + (adults + extraAdults) + ', ' + (lang === 'en' ? 'children 3-11' : 'дети 3-11') + ': ' + children3to11 + ', ' + t('wa.under3', lang) + ': ' + childrenUnder3 + ')</div></div><div class="yacht-detail"><div class="yacht-detail-label">' + t('pdf.boatPrice', lang) + '</div><div class="yacht-detail-value">' + boatPriceForClient.toLocaleString() + ' THB</div></div></div></div>' +
+      (includedOptions.length > 0 ? '<div class="section"><div class="section-title">' + t('pdf.included', lang) + '</div><div class="included-list">' + includedOptions.map(opt => '<span class="included-item">' + opt + '</span>').join('') + '</div></div>' : '') +
       // Selected extras section
-      (selectedExtras.length > 0 ? '<div class="section"><div class="section-title">ДОПОЛНИТЕЛЬНЫЕ ОПЦИИ</div><table><tr><th>Название</th><th>Кол-во</th><th>Сумма</th></tr>' + selectedExtras.map(e => '<tr><td>' + (e.nameRu || e.name) + '</td><td>' + e.quantity + ' шт</td><td>' + Math.round(e.price * e.quantity * (1 + boatMarkup / 100)).toLocaleString() + ' THB</td></tr>').join('') + '</table></div>' : '') +
+      (selectedExtras.length > 0 ? '<div class="section"><div class="section-title">' + t('pdf.extras', lang) + '</div><table><tr><th>' + t('pdf.name', lang) + '</th><th>' + t('pdf.qty', lang) + '</th><th>' + t('pdf.amount', lang) + '</th></tr>' + selectedExtras.map(e => '<tr><td>' + (lang === 'en' ? e.name : (e.nameRu || e.name)) + '</td><td>' + e.quantity + ' шт</td><td>' + Math.round(e.price * e.quantity * (1 + boatMarkup / 100)).toLocaleString() + ' THB</td></tr>').join('') + '</table></div>' : '') +
       // Selected dishes section
-      ((() => { const dishEntries = Object.entries(selectedDishes).filter(([, v]) => v > 0); if (dishEntries.length === 0) return ''; let html = '<div class="section"><div class="section-title">ВЫБОР БЛЮД</div><table><tr><th>Блюдо</th><th>Кол-во</th></tr>'; dishEntries.forEach(([key, count]) => { const parts = key.split('_'); const setId = parts.slice(0, -2).join('_'); const dishIdx = parseInt(parts[parts.length - 2]); const optIdx = parseInt(parts[parts.length - 1]); const menuSet = boatMenu.find((m: any) => String(m.id) === setId); if (menuSet && menuSet.dishes && menuSet.dishes[dishIdx]) { const opts = menuSet.dishes[dishIdx].split(':').slice(1).join(':').split(',').map((o: string) => o.trim()); const optsRu = menuSet.dishes_ru && menuSet.dishes_ru[dishIdx] ? menuSet.dishes_ru[dishIdx].split(':').slice(1).join(':').split(',').map((o: string) => o.trim()) : []; if (opts[optIdx]) html += '<tr><td>' + (optsRu[optIdx] || opts[optIdx]) + '</td><td>' + count + ' чел</td></tr>'; } }); return html + '</table></div>'; })()) +
-      (cateringItems ? '<div class="section"><div class="section-title">ПИТАНИЕ</div>' + 
-      ((() => { const menu = partnerMenus.find(pm => pm.partner_id === selectedBoat?.partner_id); return menu?.conditions_ru || menu?.conditions ? '<div style="margin-bottom:10px;padding:8px 12px;background:#fef3c7;border-radius:6px;font-size:12px;color:#92400e"><strong>⚠️ Условия:</strong> ' + (menu.conditions_ru || menu.conditions) + '</div>' : ''; })()) +
-      '<table><tr><th>Название</th><th>Кол-во</th><th>Сумма</th></tr>' + cateringItems + '</table></div>' : '') +
-      (drinkItems ? '<div class="section"><div class="section-title">НАПИТКИ</div><table><tr><th>Название</th><th>Кол-во</th><th>Сумма</th></tr>' + drinkItems + '</table></div>' : '') +
-      (allToysItems ? '<div class="section"><div class="section-title">ВОДНЫЕ РАЗВЛЕЧЕНИЯ</div><table><tr><th>Название</th><th>Время</th><th>Сумма</th></tr>' + allToysItems + '</table></div>' : '') +
-      (serviceItems ? '<div class="section"><div class="section-title">ДОПОЛНИТЕЛЬНЫЕ УСЛУГИ</div><table><tr><th>Услуга</th><th>Кол-во</th><th>Сумма</th></tr>' + serviceItems + '</table></div>' : '') +
-      (feeItems ? '<div class="section"><div class="section-title">ПАРКОВЫЕ СБОРЫ</div><table><tr><th>Название</th><th>Гостей</th><th>Сумма</th></tr>' + feeItems + '</table></div>' : '') +
-      (transferHtml ? '<div class="section"><div class="section-title">ТРАНСФЕР</div><table><tr><th>Тип</th><th>Адрес</th><th>Сумма</th></tr>' + transferHtml + '</table></div>' : '') +
-      '<div class="total-section"><div class="total-row"><span>Яхта</span><span>' + boatPriceForClient.toLocaleString() + ' THB</span></div>' + (pdfExtraGuestsSurcharge > 0 ? '<div class="total-row"><span>Доп. гости (' + extraAdults + ' взр + ' + children3to11 + ' дет)</span><span>+' + pdfExtraGuestsSurcharge.toLocaleString() + ' THB</span></div>' : '') +
-      ((totals.extras || 0) > 0 ? '<div class="total-row"><span>Доп. опции</span><span>+' + (totals.extras || 0).toLocaleString() + ' THB</span></div>' : '') +      (totals.catering > 0 ? '<div class="total-row"><span>Питание</span><span>+' + totals.catering.toLocaleString() + ' THB</span></div>' : '') +
-      (totals.drinks > 0 ? '<div class="total-row"><span>Напитки</span><span>+' + totals.drinks.toLocaleString() + ' THB</span></div>' : '') +
-      (totals.toys > 0 ? '<div class="total-row"><span>Водные развлечения</span><span>+' + totals.toys.toLocaleString() + ' THB</span></div>' : '') +
-      (totals.services > 0 ? '<div class="total-row"><span>Услуги</span><span>+' + totals.services.toLocaleString() + ' THB</span></div>' : '') +
-      (totals.fees > 0 ? '<div class="total-row"><span>Парковые сборы</span><span>+' + totals.fees.toLocaleString() + ' THB</span></div>' : '') +
-      (totals.transfer > 0 ? '<div class="total-row"><span>Трансфер</span><span>+' + totals.transfer.toLocaleString() + ' THB</span></div>' : '') + (totals.partnerWatersports > 0 ? '<div class="total-row"><span>Водные услуги</span><span>+' + totals.partnerWatersports.toLocaleString() + ' THB</span></div>' : '') +
-      '<div class="total-row final"><span>ИТОГО К ОПЛАТЕ</span><span>' + finalTotal.toLocaleString() + ' THB</span></div></div>' +
-      (customNotes ? '<div class="section" style="margin-top:20px;padding:15px;background:#fff3cd;border-radius:8px;border:1px solid #ffc107"><div class="section-title" style="color:#856404">📝 ПРИМЕЧАНИЯ</div><p style="margin:10px 0 0;color:#856404">' + customNotes.replace(/\n/g, '<br>') + '</p></div>' : '') +
-      '<div class="footer"><p><strong>Остров Сокровищ</strong> — Аренда яхт на Пхукете</p><p>WhatsApp: +66 810507171 • Email: tratatobookings@gmail.com</p></div></body></html>';
+      ((() => { const dishEntries = Object.entries(selectedDishes).filter(([, v]) => v > 0); if (dishEntries.length === 0) return ''; let html = '<div class="section"><div class="section-title">' + t('pdf.dishes', lang) + '</div><table><tr><th>' + t('pdf.dish', lang) + '</th><th>' + t('pdf.qty', lang) + '</th></tr>'; dishEntries.forEach(([key, count]) => { const parts = key.split('_'); const setId = parts.slice(0, -2).join('_'); const dishIdx = parseInt(parts[parts.length - 2]); const optIdx = parseInt(parts[parts.length - 1]); const menuSet = boatMenu.find((m: any) => String(m.id) === setId); if (menuSet && menuSet.dishes && menuSet.dishes[dishIdx]) { const opts = menuSet.dishes[dishIdx].split(':').slice(1).join(':').split(',').map((o: string) => o.trim()); const optsRu = menuSet.dishes_ru && menuSet.dishes_ru[dishIdx] ? menuSet.dishes_ru[dishIdx].split(':').slice(1).join(':').split(',').map((o: string) => o.trim()) : []; if (opts[optIdx]) html += '<tr><td>' + (optsRu[optIdx] || opts[optIdx]) + '</td><td>' + count + ' чел</td></tr>'; } }); return html + '</table></div>'; })()) +
+      (cateringItems ? '<div class="section"><div class="section-title">' + t('pdf.catering', lang) + '</div>' + 
+      ((() => { const menu = partnerMenus.find(pm => pm.partner_id === selectedBoat?.partner_id); return menu?.conditions_ru || menu?.conditions ? '<div style="margin-bottom:10px;padding:8px 12px;background:#fef3c7;border-radius:6px;font-size:12px;color:#92400e"><strong>⚠️ ' + t('pdf.conditions', lang) + '</strong> ' + (menu.conditions_ru || menu.conditions) + '</div>' : ''; })()) +
+      '<table><tr><th>' + t('pdf.name', lang) + '</th><th>' + t('pdf.qty', lang) + '</th><th>' + t('pdf.amount', lang) + '</th></tr>' + cateringItems + '</table></div>' : '') +
+      (drinkItems ? '<div class="section"><div class="section-title">' + t('pdf.drinks', lang) + '</div><table><tr><th>' + t('pdf.name', lang) + '</th><th>' + t('pdf.qty', lang) + '</th><th>' + t('pdf.amount', lang) + '</th></tr>' + drinkItems + '</table></div>' : '') +
+      (allToysItems ? '<div class="section"><div class="section-title">' + t('pdf.waterToys', lang) + '</div><table><tr><th>' + t('pdf.name', lang) + '</th><th>' + t('pdf.time', lang) + '</th><th>' + t('pdf.amount', lang) + '</th></tr>' + allToysItems + '</table></div>' : '') +
+      (serviceItems ? '<div class="section"><div class="section-title">' + t('pdf.services', lang) + '</div><table><tr><th>' + t('pdf.service', lang) + '</th><th>' + t('pdf.qty', lang) + '</th><th>' + t('pdf.amount', lang) + '</th></tr>' + serviceItems + '</table></div>' : '') +
+      (feeItems ? '<div class="section"><div class="section-title">' + t('pdf.fees', lang) + '</div><table><tr><th>' + t('pdf.name', lang) + '</th><th>' + t('pdf.guestsLabel', lang) + '</th><th>' + t('pdf.amount', lang) + '</th></tr>' + feeItems + '</table></div>' : '') +
+      (transferHtml ? '<div class="section"><div class="section-title">' + t('pdf.transfer', lang) + '</div><table><tr><th>' + t('pdf.type', lang) + '</th><th>' + t('pdf.address', lang) + '</th><th>' + t('pdf.amount', lang) + '</th></tr>' + transferHtml + '</table></div>' : '') +
+      '<div class="total-section"><div class="total-row"><span>' + t('total.boatBase', lang) + '</span><span>' + boatPriceForClient.toLocaleString() + ' THB</span></div>' + (pdfExtraGuestsSurcharge > 0 ? '<div class="total-row"><span>' + t('total.extraGuests', lang) + ' (' + extraAdults + ' ' + t('pdf.adults', lang) + ' + ' + children3to11 + ' ' + t('pdf.children', lang) + ')</span><span>+' + pdfExtraGuestsSurcharge.toLocaleString() + ' THB</span></div>' : '') +
+      ((totals.extras || 0) > 0 ? '<div class="total-row"><span>' + t('total.extras', lang) + '</span><span>+' + (totals.extras || 0).toLocaleString() + ' THB</span></div>' : '') +      (totals.catering > 0 ? '<div class="total-row"><span>' + t('total.catering', lang) + '</span><span>+' + totals.catering.toLocaleString() + ' THB</span></div>' : '') +
+      (totals.drinks > 0 ? '<div class="total-row"><span>' + t('total.drinks', lang) + '</span><span>+' + totals.drinks.toLocaleString() + ' THB</span></div>' : '') +
+      (totals.toys > 0 ? '<div class="total-row"><span>' + t('total.waterToys', lang) + '</span><span>+' + totals.toys.toLocaleString() + ' THB</span></div>' : '') +
+      (totals.services > 0 ? '<div class="total-row"><span>' + t('total.services', lang) + '</span><span>+' + totals.services.toLocaleString() + ' THB</span></div>' : '') +
+      (totals.fees > 0 ? '<div class="total-row"><span>' + t('total.fees', lang) + '</span><span>+' + totals.fees.toLocaleString() + ' THB</span></div>' : '') +
+      (totals.transfer > 0 ? '<div class="total-row"><span>' + t('total.transfer', lang) + '</span><span>+' + totals.transfer.toLocaleString() + ' THB</span></div>' : '') + (totals.partnerWatersports > 0 ? '<div class="total-row"><span>' + t('total.watersports', lang) + '</span><span>+' + totals.partnerWatersports.toLocaleString() + ' THB</span></div>' : '') +
+      '<div class="total-row final"><span>' + t('pdf.totalToPay', lang) + '</span><span>' + finalTotal.toLocaleString() + ' THB</span></div></div>' +
+      (customNotes ? '<div class="section" style="margin-top:20px;padding:15px;background:#fff3cd;border-radius:8px;border:1px solid #ffc107"><div class="section-title" style="color:#856404">' + t('pdf.notes', lang) + '</div><p style="margin:10px 0 0;color:#856404">' + customNotes.replace(/\n/g, '<br>') + '</p></div>' : '') +
+      '<div class="footer"><p><strong>' + t('pdf.company', lang) + '</strong> — ' + t('pdf.footer', lang) + '</p><p>WhatsApp: +66 810507171 • Email: tratatobookings@gmail.com</p></div></body></html>';
     
     const printWindow = window.open('', '_blank');
     if (printWindow) {
@@ -667,33 +667,35 @@ export default function Home() {
   const generateWhatsApp = () => {
     if (!selectedBoat) return;
     const totals = calculateTotals();
-    const baseBoatPrice = Number(selectedBoat?.calculated_total) || Number(selectedBoat?.base_price) || 0; const boatPriceForClient = markupMode === "fixed" ? baseBoatPrice + fixedMarkup : Math.round(baseBoatPrice * (1 + boatMarkup / 100));
+    const baseBoatPrice = Number(selectedBoat?.calculated_total) || Number(selectedBoat?.base_price) || 0;
+    const boatPriceForClient = markupMode === "fixed" ? baseBoatPrice + fixedMarkup : Math.round(baseBoatPrice * (1 + boatMarkup / 100));
     const adultPriceToUse = customAdultPrice !== null ? customAdultPrice : (selectedBoat?.extra_pax_price || 0);
     const childPriceToUse = customChildPrice !== null ? customChildPrice : (selectedBoat?.child_price_3_11 || Math.round((selectedBoat?.extra_pax_price || 0) * 0.5));
     const extraAdultsSurch = extraAdults * adultPriceToUse;
     const children3to11Surch = children3to11 * childPriceToUse;
 
-    let message = '*ЗАПРОС НА БРОНИРОВАНИЕ*\n\n';
-    message += '*Яхта:* ' + selectedBoat.boat_name + '\n';
-    message += '*Маршрут:* ' + (selectedBoat.route_name || 'По запросу') + '\n';
-    message += '*Длительность:* ' + (selectedBoat.duration_hours || 8) + ' часов\n';
-    message += '*Гостей:* ' + totalGuests + ' (взр: ' + (adults + extraAdults) + ', дети 3-11: ' + children3to11 + ', до 3: ' + childrenUnder3 + ')\n\n';
+    const L = lang;
+    let message = '*' + t('wa.title', L) + '*\n\n';
+    message += '*' + t('wa.yacht', L) + '* ' + selectedBoat.boat_name + '\n';
+    message += '*' + t('wa.route', L) + '* ' + (selectedBoat.route_name || (L === 'en' ? 'On request' : 'По запросу')) + '\n';
+    message += '*' + t('wa.duration', L) + '* ' + (selectedBoat.duration_hours || 8) + ' ' + t('wa.hours', L) + '\n';
+    message += '*' + t('wa.guests', L) + '* ' + totalGuests + ' (' + t('wa.adultsShort', L) + ': ' + (adults + extraAdults) + ', ' + (L === 'en' ? 'children 3-11' : 'дети 3-11') + ': ' + children3to11 + ', ' + t('wa.under3', L) + ': ' + childrenUnder3 + ')\n\n';
 
-    message += '*Стоимость яхты:* ' + boatPriceForClient.toLocaleString() + ' THB\n';
+    message += '*' + t('wa.boatPrice', L) + '* ' + boatPriceForClient.toLocaleString() + ' THB\n';
     if (extraAdultsSurch + children3to11Surch > 0) {
-      message += '*Доп. гости (' + extraAdults + ' взр + ' + children3to11 + ' дет):* +' + (extraAdultsSurch + children3to11Surch).toLocaleString() + ' THB\n';
+      message += '*' + t('wa.extraGuests', L) + ' (' + extraAdults + ' ' + t('wa.adultsShort', L) + ' + ' + children3to11 + ' ' + t('wa.childrenShort', L) + '):* +' + (extraAdultsSurch + children3to11Surch).toLocaleString() + ' THB\n';
     }
 
     if (selectedExtras.length > 0) {
-      message += '\n*Доп. опции:*\n';
+      message += '\n*' + t('wa.extras', L) + '*\n';
       selectedExtras.forEach(e => {
-        message += '  - ' + (e.nameRu || e.name) + ' x' + e.quantity + ' - ' + (e.price * e.quantity).toLocaleString() + ' THB\n';
+        message += '  - ' + (L === 'en' ? e.name : (e.nameRu || e.name)) + ' x' + e.quantity + ' - ' + (e.price * e.quantity).toLocaleString() + ' THB\n';
       });
     }
 
     const dishEntries = Object.entries(selectedDishes).filter(([, v]) => v > 0);
     if (dishEntries.length > 0) {
-      message += '\n*Выбор блюд:*\n';
+      message += '\n*' + t('wa.dishes', L) + '*\n';
       dishEntries.forEach(([key, count]) => {
         const parts = key.split('_');
         const setId = parts.slice(0, -2).join('_');
@@ -708,15 +710,15 @@ export default function Home() {
     }
 
     if (cateringOrders.length > 0) {
-      message += '\n*Питание:*\n';
+      message += '\n*' + t('wa.catering', L) + '*\n';
       cateringOrders.forEach(order => {
         const priceWithMarkup = Math.round(order.pricePerPerson * (1 + boatMarkup / 100));
-        message += '  - ' + order.packageName + ' (' + order.persons + ' чел) - ' + (priceWithMarkup * order.persons).toLocaleString() + ' THB\n';
+        message += '  - ' + order.packageName + ' (' + order.persons + ' ' + t('wa.persons', L) + ') - ' + (priceWithMarkup * order.persons).toLocaleString() + ' THB\n';
       });
     }
 
     if (drinkOrders.length > 0) {
-      message += '\n*Напитки:*\n';
+      message += '\n*' + t('wa.drinks', L) + '*\n';
       drinkOrders.forEach(order => {
         const price = customPrices['drink_' + order.drinkId] || order.price;
         message += '  - ' + order.name + ' x' + order.quantity + ' - ' + (price * order.quantity).toLocaleString() + ' THB\n';
@@ -724,58 +726,57 @@ export default function Home() {
     }
 
     if (selectedToys.length > 0) {
-      message += '\n*Водные игрушки:*\n';
-      selectedToys.forEach((t: any) => {
-        const cost = ((t.pricePerHour || 0) * (t.hours || 1) + (t.pricePerDay || 0) * (t.days || 0)) * (t.quantity || 1);
-        message += '  - ' + t.name + ' - ' + cost.toLocaleString() + ' THB\n';
+      message += '\n*' + t('wa.toys', L) + '*\n';
+      selectedToys.forEach((t2: any) => {
+        const cost = ((t2.pricePerHour || 0) * (t2.hours || 1) + (t2.pricePerDay || 0) * (t2.days || 0)) * (t2.quantity || 1);
+        message += '  - ' + (L === 'en' ? t2.name : (t2.nameRu || t2.name)) + ' - ' + cost.toLocaleString() + ' THB\n';
       });
     }
 
     if (selectedServices.length > 0) {
-      message += '\n*Услуги:*\n';
+      message += '\n*' + t('wa.services', L) + '*\n';
       selectedServices.forEach((s: any) => {
-        message += '  - ' + (s.nameRu || s.name) + ' x' + (s.quantity || 1) + ' - ' + ((s.price || 0) * (s.quantity || 1)).toLocaleString() + ' THB\n';
+        message += '  - ' + (L === 'en' ? s.name : (s.nameRu || s.name)) + ' x' + (s.quantity || 1) + ' - ' + ((s.price || 0) * (s.quantity || 1)).toLocaleString() + ' THB\n';
       });
     }
 
     if (selectedPartnerWatersports.length > 0) {
-      message += '\n*Водный спорт:*\n';
+      message += '\n*' + t('wa.watersports', L) + '*\n';
       selectedPartnerWatersports.forEach((w: any) => {
         const cost = (Number(w.pricePerHour) || 0) * (Number(w.hours) || 0) + (Number(w.pricePerDay) || 0) * (Number(w.days) || 0);
-        message += '  - ' + w.name + ' - ' + cost.toLocaleString() + ' THB\n';
+        message += '  - ' + (L === 'en' ? w.name : (w.nameRu || w.name)) + ' - ' + cost.toLocaleString() + ' THB\n';
       });
     }
 
     if (selectedFees.length > 0) {
-      message += '\n*Парковые сборы:*\n';
+      message += '\n*' + t('wa.fees', L) + '*\n';
       selectedFees.forEach((fee: any) => {
         const price = customPrices['fee_' + fee.id] || fee.pricePerPerson;
-        message += '  - ' + (fee.nameRu || fee.name) + ' - ' + (price * (fee.adults + fee.children)).toLocaleString() + ' THB\n';
+        message += '  - ' + (L === 'en' ? fee.name : (fee.nameRu || fee.name)) + ' - ' + (price * (fee.adults + fee.children)).toLocaleString() + ' THB\n';
       });
     }
 
     if (transferPickup.type !== 'none' && transferPickup.price > 0) {
-      message += '\n*Трансфер:* ' + transferPickup.price.toLocaleString() + ' THB\n';
-      if (transferPickup.pickup) message += '  Адрес: ' + transferPickup.pickup + '\n';
+      message += '\n*' + t('wa.transfer', L) + '* ' + transferPickup.price.toLocaleString() + ' THB\n';
+      if (transferPickup.pickup) message += '  ' + t('wa.address', L) + ' ' + transferPickup.pickup + '\n';
     }
-
 
     const finalTotal = totals.totalClient || 0;
-    message += '\n--- СВОДКА ---\n';
-    message += '*Яхта:* ' + boatPriceForClient.toLocaleString() + ' THB\n';
+    message += '\n--- ' + (L === 'en' ? 'SUMMARY' : 'СВОДКА') + ' ---\n';
+    message += '*' + (L === 'en' ? 'Yacht:' : 'Яхта:') + '* ' + boatPriceForClient.toLocaleString() + ' THB\n';
     if (extraAdultsSurch + children3to11Surch > 0) {
-      message += '*Доп. гости:* +' + (extraAdultsSurch + children3to11Surch).toLocaleString() + ' THB\n';
+      message += '*' + t('wa.extraGuests', L) + ':* +' + (extraAdultsSurch + children3to11Surch).toLocaleString() + ' THB\n';
     }
-    if (totals.extras > 0) message += '*Доп. опции:* +' + totals.extras.toLocaleString() + ' THB\n';
-    if (totals.catering > 0) message += '*Питание:* +' + totals.catering.toLocaleString() + ' THB\n';
-    if (totals.drinks > 0) message += '*Напитки:* +' + totals.drinks.toLocaleString() + ' THB\n';
-    if (totals.toys > 0) message += '*Водные игрушки:* +' + totals.toys.toLocaleString() + ' THB\n';
-    if (totals.services > 0) message += '*Услуги:* +' + totals.services.toLocaleString() + ' THB\n';
-    if ((totals.partnerWatersports || 0) > 0) message += '*Водный спорт:* +' + (totals.partnerWatersports || 0).toLocaleString() + ' THB\n';
-    if (totals.fees > 0) message += '*Парковые сборы:* +' + totals.fees.toLocaleString() + ' THB\n';
-    if (totals.transfer > 0) message += '*Трансфер:* +' + totals.transfer.toLocaleString() + ' THB\n';
-    message += '\n*ИТОГО К ОПЛАТЕ: ' + finalTotal.toLocaleString() + ' THB*';
-    if (customNotes) message += '\n\n*Примечания:*\n' + customNotes;
+    if ((totals.extras || 0) > 0) message += '*' + t('wa.extras', L) + '* +' + (totals.extras || 0).toLocaleString() + ' THB\n';
+    if (totals.catering > 0) message += '*' + t('wa.catering', L) + '* +' + totals.catering.toLocaleString() + ' THB\n';
+    if (totals.drinks > 0) message += '*' + t('wa.drinks', L) + '* +' + totals.drinks.toLocaleString() + ' THB\n';
+    if (totals.toys > 0) message += '*' + t('wa.toys', L) + '* +' + totals.toys.toLocaleString() + ' THB\n';
+    if (totals.services > 0) message += '*' + t('wa.services', L) + '* +' + totals.services.toLocaleString() + ' THB\n';
+    if ((totals.partnerWatersports || 0) > 0) message += '*' + t('wa.watersports', L) + '* +' + (totals.partnerWatersports || 0).toLocaleString() + ' THB\n';
+    if (totals.fees > 0) message += '*' + t('wa.fees', L) + '* +' + totals.fees.toLocaleString() + ' THB\n';
+    if (totals.transfer > 0) message += '*' + t('wa.transfer', L) + '* +' + totals.transfer.toLocaleString() + ' THB\n';
+    message += '\n*' + t('wa.total', L) + ' ' + finalTotal.toLocaleString() + ' THB*';
+    if (customNotes) message += '\n\n*' + t('wa.notes', L) + '*\n' + customNotes;
     window.open('https://wa.me/?text=' + encodeURIComponent(message), '_blank');
   };
   // ==================== TOGGLE FUNCTIONS ====================
@@ -967,7 +968,10 @@ export default function Home() {
             <a href="/partners" style={{ padding: '8px 16px', backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '8px', color: 'white', textDecoration: 'none', fontSize: '14px' }}>
               👥 Партнёры
             </a>
-          </div>
+            <div style={{ display: "flex", backgroundColor: "rgba(0,0,0,0.2)", borderRadius: "8px", padding: "2px" }}>
+              <button onClick={() => setLang("ru")} style={{ padding: "6px 12px", borderRadius: "6px", border: "none", cursor: "pointer", fontSize: "13px", fontWeight: "600", backgroundColor: lang === "ru" ? "white" : "transparent", color: lang === "ru" ? "#1e40af" : "rgba(255,255,255,0.7)" }}>RU</button>
+              <button onClick={() => setLang("en")} style={{ padding: "6px 12px", borderRadius: "6px", border: "none", cursor: "pointer", fontSize: "13px", fontWeight: "600", backgroundColor: lang === "en" ? "white" : "transparent", color: lang === "en" ? "#1e40af" : "rgba(255,255,255,0.7)" }}>EN</button>
+            </div>          </div>
         </div>
       </header>
 
@@ -1435,7 +1439,7 @@ export default function Home() {
                       const menu = partnerMenus.find(pm => pm.partner_id === selectedBoat?.partner_id);
                       return (menu?.conditions_ru || menu?.conditions) ? (
                         <div style={{ marginBottom: '12px', padding: '10px 14px', backgroundColor: '#fef3c7', borderRadius: '8px', border: '1px solid #fcd34d', fontSize: '13px', color: '#92400e' }}>
-                          <strong>⚠️ Условия:</strong> {menu.conditions_ru || menu.conditions}
+                          <strong>⚠️ ' + t('pdf.conditions', lang) + '</strong> {menu.conditions_ru || menu.conditions}
                         </div>
                       ) : null;
                     })()}
@@ -2024,7 +2028,7 @@ export default function Home() {
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <span style={{ fontSize: '18px' }}>{expandedSections.partnerWatersports ? '▼' : '▶'}</span>
-                        <span style={{ fontWeight: '600', color: '#0891b2' }}>🏄 Водные развлечения от партнёров</span>
+                        <span style={{ fontWeight: '600', color: '#0891b2' }}>🏄 🏄 Водные развлечения от партнёров</span>
                         <span style={{ fontSize: '13px', color: '#6b7280' }}>({watersportsPartners.length} партнёров)</span>
                       </div>
                     </div>
@@ -2396,7 +2400,13 @@ export default function Home() {
                     <span>Яхта (базовая цена)</span>
                     <span style={{ fontWeight: '600' }}>{(selectedBoat.calculated_total || 0).toLocaleString()} THB</span>
                   </div>
-                  
+
+                  {(extraAdults + children3to11) > 0 && (
+                    <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.2)" }}>
+                      <span>Доп. гости ({extraAdults} взр + {children3to11} дет)</span>
+                      <span style={{ fontWeight: "600" }}>+{((extraAdults * (customPrices["extra_adult"] || selectedBoat?.extra_pax_price || 0)) + (children3to11 * (customPrices["child_3_11"] || Math.round((selectedBoat?.extra_pax_price || 0) * 0.5)))).toLocaleString()} THB</span>
+                    </div>
+                  )}                  
                   {totals.fees > 0 && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.2)' }}>
                       <span>Парковые сборы</span>
@@ -2424,7 +2434,13 @@ export default function Home() {
                       <span style={{ fontWeight: '600' }}>+{totals.toys.toLocaleString()} THB</span>
                     </div>
                   )}
-                  
+
+                  {(totals.partnerWatersports || 0) > 0 && (
+                    <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.2)" }}>
+                      <span>Водные услуги</span>
+                      <span style={{ fontWeight: "600" }}>+{(totals.partnerWatersports || 0).toLocaleString()} THB</span>
+                    </div>
+                  )}                  
                   {totals.services > 0 && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.2)' }}>
                       <span>Персонал</span>
