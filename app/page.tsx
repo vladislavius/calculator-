@@ -103,9 +103,10 @@ export default function Home() {
   const [selectedDishes, setSelectedDishes] = useState<Record<string, number>>({});
   
   // New: Boat markup slider
-  const [boatMarkup, setBoatMarkup] = useState(15);
+  const [boatMarkup, setBoatMarkup] = useState(0);
   
-  // Partner markups
+  const [markupMode, setMarkupMode] = useState<"percent" | "fixed">("fixed");
+  const [fixedMarkup, setFixedMarkup] = useState(0);  // Partner markups
   const [partnerMarkups, setPartnerMarkups] = useState<{[key: string]: number}>({});
   const [expandedSections, setExpandedSections] = useState<{[key: string]: boolean}>({
     boatFood: true,
@@ -535,7 +536,7 @@ export default function Home() {
     const children3to11Surcharge = children3to11 * childPriceToUse;
     const extraGuestsSurcharge = extraAdultsSurcharge + children3to11Surcharge;
     // Markup ONLY on boat base price, extra guests added without markup
-    const boatPriceWithMarkup = Math.round(baseClient * (1 + boatMarkup / 100));
+    const boatPriceWithMarkup = markupMode === "fixed" ? baseClient + fixedMarkup : Math.round(baseClient * (1 + boatMarkup / 100));
     const totalBeforeMarkup = boatPriceWithMarkup + extraGuestsSurcharge + allExtras - childrenDiscount;
     const markupAmount = markupPercent > 0 ? Math.round(totalBeforeMarkup * markupPercent / 100) : 0;
     
@@ -564,7 +565,7 @@ export default function Home() {
   const generatePDF = () => {
     if (!selectedBoat) return;
     const totals = calculateTotals();
-    const boatPriceForClient = Math.round((Number(selectedBoat?.calculated_total) || Number(selectedBoat?.base_price) || 0) * (1 + boatMarkup / 100));
+    const baseBoatPrice = Number(selectedBoat?.calculated_total) || Number(selectedBoat?.base_price) || 0; const boatPriceForClient = markupMode === "fixed" ? baseBoatPrice + fixedMarkup : Math.round(baseBoatPrice * (1 + boatMarkup / 100));
     
     // Extra guests surcharge for PDF
     const pdfAdultPrice = customAdultPrice !== null ? customAdultPrice : (selectedBoat?.extra_pax_price || 0);
@@ -666,7 +667,7 @@ export default function Home() {
   const generateWhatsApp = () => {
     if (!selectedBoat) return;
     const totals = calculateTotals();
-    const boatPriceForClient = Math.round((Number(selectedBoat?.calculated_total) || Number(selectedBoat?.base_price) || 0) * (1 + boatMarkup / 100));
+    const baseBoatPrice = Number(selectedBoat?.calculated_total) || Number(selectedBoat?.base_price) || 0; const boatPriceForClient = markupMode === "fixed" ? baseBoatPrice + fixedMarkup : Math.round(baseBoatPrice * (1 + boatMarkup / 100));
     const adultPriceToUse = customAdultPrice !== null ? customAdultPrice : (selectedBoat?.extra_pax_price || 0);
     const childPriceToUse = customChildPrice !== null ? customChildPrice : (selectedBoat?.child_price_3_11 || Math.round((selectedBoat?.extra_pax_price || 0) * 0.5));
     const extraAdultsSurch = extraAdults * adultPriceToUse;
@@ -2366,26 +2367,30 @@ export default function Home() {
                 
                 {/* Markup slider */}
                 <div style={{ marginBottom: '20px', padding: '16px', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: '12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                    <span style={{ fontWeight: '600' }}>🔒 Наша наценка</span>
-                    <span style={{ fontSize: '28px', fontWeight: 'bold' }}>{boatMarkup}%</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <span style={{ fontWeight: '600' }}>Наша наценка</span>
+                    <div style={{ display: 'flex', gap: '4px', backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: '8px', padding: '2px' }}>
+                      <button onClick={() => setMarkupMode('percent')} style={{ padding: '6px 12px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: '600', backgroundColor: markupMode === 'percent' ? 'white' : 'transparent', color: markupMode === 'percent' ? '#1e40af' : 'rgba(255,255,255,0.7)' }}>%</button>
+                      <button onClick={() => setMarkupMode('fixed')} style={{ padding: '6px 12px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: '600', backgroundColor: markupMode === 'fixed' ? 'white' : 'transparent', color: markupMode === 'fixed' ? '#1e40af' : 'rgba(255,255,255,0.7)' }}>THB</button>
+                    </div>
                   </div>
-                  <input 
-                    type="range" 
-                    min="0" 
-                    max="200" 
-                    value={boatMarkup} 
-                    onChange={(e) => setBoatMarkup(Number(e.target.value))} 
-                    style={{ width: '100%', height: '8px', cursor: 'pointer' }} 
-                  />
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', opacity: 0.7, marginTop: '4px' }}>
-                    <span>0%</span>
-                    <span>100%</span>
-                    <span>200%</span>
-                  </div>
+                  {markupMode === 'percent' ? (
+                    <>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                        <input type="number" min="0" max="500" value={boatMarkup} onChange={(e) => setBoatMarkup(Number(e.target.value) || 0)} style={{ width: '100px', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.3)', backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', fontSize: '20px', fontWeight: 'bold', textAlign: 'center' }} />
+                        <span style={{ fontSize: '20px', fontWeight: 'bold' }}>%</span>
+                        <span style={{ fontSize: '13px', opacity: 0.7 }}>= +{Math.round((selectedBoat?.calculated_total || 0) * boatMarkup / 100).toLocaleString()} THB</span>
+                      </div>
+                      <input type="range" min="0" max="200" value={boatMarkup} onChange={(e) => setBoatMarkup(Number(e.target.value))} style={{ width: '100%', height: '6px', cursor: 'pointer' }} />
+                    </>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <input type="number" min="0" step="1000" value={fixedMarkup} onChange={(e) => setFixedMarkup(Number(e.target.value) || 0)} style={{ width: '160px', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.3)', backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', fontSize: '20px', fontWeight: 'bold', textAlign: 'center' }} />
+                      <span style={{ fontSize: '16px', fontWeight: 'bold' }}>THB</span>
+                      <span style={{ fontSize: '13px', opacity: 0.7 }}>= {((selectedBoat?.calculated_total || 0) > 0 ? (fixedMarkup / (selectedBoat?.calculated_total || 1) * 100).toFixed(1) : 0)}%</span>
+                    </div>
+                  )}
                 </div>
-
-                {/* Price breakdown */}
                 <div style={{ backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '12px', padding: '20px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.2)' }}>
                     <span>Яхта (базовая цена)</span>
@@ -2442,8 +2447,8 @@ export default function Home() {
                   )}
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.2)', color: '#fcd34d' }}>
-                    <span>Наценка ({boatMarkup}%)</span>
-                    <span style={{ fontWeight: '600' }}>+{Math.round((selectedBoat.calculated_total || 0) * boatMarkup / 100).toLocaleString()} THB</span>
+                    <span>Наценка {markupMode === "fixed" ? "(" + fixedMarkup.toLocaleString() + " THB)" : "(" + boatMarkup + "%)"}</span>
+                    <span style={{ fontWeight: "600" }}>+{markupMode === "fixed" ? fixedMarkup.toLocaleString() : Math.round((selectedBoat.calculated_total || 0) * boatMarkup / 100).toLocaleString()} THB</span>
                   </div>
                   
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 0 0', fontSize: '24px', fontWeight: 'bold' }}>
