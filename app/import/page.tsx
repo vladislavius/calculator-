@@ -1132,7 +1132,11 @@ export default function ImportPage() {
             >
               📜 История ({importHistory.length || '...'})
             </button>
-            <a href="/" style={{padding: '8px 16px', backgroundColor: '#e5e7eb', borderRadius: '6px', color: '#374151', textDecoration: 'none'}}>← Назад к поиску</a>
+            <div style={{display:'flex',gap:'8px'}}>
+              <a href="/import-all" style={{padding:'8px 16px',backgroundColor:'#eff6ff',borderRadius:'8px',color:'#2563eb',textDecoration:'none',fontWeight:'500',border:'1px solid #bfdbfe'}}>📦 Центр импорта</a>
+              <a href="/partners" style={{padding:'8px 16px',backgroundColor:'#f0fdf4',borderRadius:'8px',color:'#059669',textDecoration:'none',fontWeight:'500',border:'1px solid #bbf7d0'}}>👥 Партнёры</a>
+              <a href="/" style={{padding:'8px 16px',backgroundColor:'#2563eb',borderRadius:'8px',color:'white',textDecoration:'none',fontWeight:'500'}}>← Калькулятор</a>
+            </div>
           </div>
         </div>
 

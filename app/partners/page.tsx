@@ -1244,8 +1244,11 @@ export default function PartnersPage() {
 
       <div style={styles.header}>
         <h1 style={styles.title}>👥 Управление партнёрами</h1>
-        <a href="/" style={styles.backLink}>← Назад к калькулятору</a>
-        <a href="/menu-import" style={{...styles.backLink, marginLeft: '20px', backgroundColor: '#f59e0b', color: 'white', padding: '8px 16px', borderRadius: '6px', textDecoration: 'none'}}>🍽️ Импорт меню</a>
+        <div style={{display:'flex',gap:'8px'}}>
+          <a href="/import-all" style={{padding:'8px 16px',backgroundColor:'#eff6ff',borderRadius:'8px',color:'#2563eb',textDecoration:'none',fontWeight:'500',border:'1px solid #bfdbfe'}}>📦 Центр импорта</a>
+          <a href="/import" style={{padding:'8px 16px',backgroundColor:'#f5f3ff',borderRadius:'8px',color:'#7c3aed',textDecoration:'none',fontWeight:'500',border:'1px solid #ddd6fe'}}>🤖 AI-парсер яхт</a>
+          <a href="/" style={{padding:'8px 16px',backgroundColor:'#2563eb',borderRadius:'8px',color:'white',textDecoration:'none',fontWeight:'500'}}>← Калькулятор</a>
+        </div>
       </div>
 
       <div style={styles.tabs}>
