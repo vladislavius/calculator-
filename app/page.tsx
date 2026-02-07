@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
+import { SearchResult, BoatOption, SelectedExtra, CateringOrder, DrinkOrder, TransferOrder } from './lib/types';
+import { inputStyle, labelStyle, cardStyle, tabStyle } from './lib/styles';
 
 let _supabase: ReturnType<typeof createClient> | null = null;
 const getSupabase = (): any => {
@@ -13,86 +15,6 @@ const getSupabase = (): any => {
   }
   return _supabase;
 };
-
-// ==================== INTERFACES ====================
-interface SearchResult {
-  boat_id: number;
-  boat_name: string;
-  boat_type: string;
-  length_ft: number;
-  max_guests: number;
-  cabin_count: number;
-  crew_count: number;
-  description: string;
-  main_photo_url: string;
-  partner_name: string;
-  partner_id: number;
-  route_name: string;
-  destination: string;
-  duration_hours: number;
-  duration?: string;
-  base_price: number;
-  agent_price: number;
-  client_price: number;
-  extra_pax_price: number;
-  child_price_3_11: number;  // Цена за ребёнка 3-11 лет
-  child_free_under: number;  // До какого возраста бесплатно (обычно 3)
-  fuel_surcharge: number;
-  calculated_total: number;
-  calculated_agent_total: number;
-  base_pax: number;
-  marina_name: string;
-}
-
-interface BoatOption {
-  id: number;
-  option_name: string;
-  option_name_ru: string;
-  option_category: string;
-  category_code: string;
-  status: string;
-  price: number | null;
-  price_per: string | null;
-  quantity_included: number | null;
-  notes: string | null;
-}
-
-interface SelectedExtra {
-  optionId: number;
-  name: string;
-  nameRu: string;
-  quantity: number;
-  price: number;
-  pricePer: string;
-  category: string;
-}
-
-interface CateringOrder {
-  packageId: string;
-  packageName: string;
-  pricePerPerson: number;
-  persons: number;
-  minPersons?: number;
-  notes: string;
-}
-
-interface DrinkOrder {
-  drinkId: string;
-  name: string;
-  nameRu?: string;
-  price: number;
-  quantity: number;
-  unit: string;
-  included?: boolean;
-}
-
-interface TransferOrder {
-  type: 'none' | 'standard' | 'minivan' | 'vip' | 'own';
-  pickup: string;
-  dropoff: string;
-  price: number;
-  notes: string;
-}
 
 // ==================== MOCK DATA ====================
 // CATERING_PACKAGES moved to database (catering_menu table)
@@ -113,12 +35,14 @@ export default function Home() {
   const [searchDate, setSearchDate] = useState('');
 
   const [adults, setAdults] = useState(2);
+  const [children, setChildren] = useState(0);
   const [extraAdults, setExtraAdults] = useState(0);
   const [children3to11, setChildren3to11] = useState(0);
   const [childrenUnder3, setChildrenUnder3] = useState(0);
   const [customAdultPrice, setCustomAdultPrice] = useState<number | null>(null);
   const [customChildPrice, setCustomChildPrice] = useState<number | null>(null);
   const [customNotes, setCustomNotes] = useState<string>('');
+  const [infants, setInfants] = useState(0);
   const [boatType, setBoatType] = useState('');
   const [destination, setDestination] = useState('');
   const [boatNameSearch, setBoatNameSearch] = useState('');
@@ -268,7 +192,7 @@ export default function Home() {
   // Active tab in modal
   const [activeTab, setActiveTab] = useState<'included' | 'food' | 'drinks' | 'toys' | 'services' | 'transfer' | 'fees' | 'summary'>('included');
 
-  const totalGuests = adults;
+  const totalGuests = adults + children + infants;
 
   const boatTypes = [
     { value: '', label: 'Любой тип' },
@@ -954,22 +878,11 @@ export default function Home() {
         nameRu: fee.name_ru,
         pricePerPerson: fee.price_per_person || 0,
         adults: adults, 
-        children: children3to11,
+        children: children,
         mandatory: fee.mandatory || false
       }]);
     }
   };
-
-  // ==================== STYLES ====================
-  const inputStyle = { padding: '10px 14px', border: '1px solid #d1d5db', borderRadius: '8px', color: '#1f2937', width: '100%', fontSize: '14px' };
-  const labelStyle = { display: 'block', fontSize: '12px', color: '#6b7280', marginBottom: '4px', fontWeight: '500' as const };
-  const cardStyle = { backgroundColor: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' };
-  const tabStyle = (active: boolean) => ({
-    padding: '10px 16px', border: 'none', borderRadius: '8px',
-    backgroundColor: active ? '#2563eb' : '#f3f4f6',
-    color: active ? 'white' : '#6b7280',
-    cursor: 'pointer', fontSize: '13px', fontWeight: '500' as const
-  });
 
   // ==================== RENDER ====================
   return (
@@ -1479,7 +1392,7 @@ export default function Home() {
                                     if (isSelected) {
                                       setCateringOrders(cateringOrders.filter(c => c.packageId !== set.id));
                                     } else {
-                                      setCateringOrders([...cateringOrders, { packageId: set.id, packageName: set.name_en + (set.name_ru ? ' (' + set.name_ru + ')' : ''), pricePerPerson: 0, persons: adults + children3to11, notes: '' }]);
+                                      setCateringOrders([...cateringOrders, { packageId: set.id, packageName: set.name_en + (set.name_ru ? ' (' + set.name_ru + ')' : ''), pricePerPerson: 0, persons: adults + children, notes: '' }]);
                                     }
                                   }}
                                   style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: '#22c55e' }}
