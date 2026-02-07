@@ -1520,18 +1520,20 @@ export default function PartnersPage() {
                                 </span>
                               </div>
                             </div>
-                            <button 
-                              style={{ fontSize: "10px", padding: "4px 8px", backgroundColor: "#3b82f6", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", marginRight: "6px" }}
-                              onClick={(e) => { e.stopPropagation(); startEditPartner(partner); }}
-                            >
-                              ✏️ Редактировать
-                            </button>
-                            <button
-                              style={{ ...styles.btnDanger, fontSize: '10px', padding: '4px 8px' }}
-                              onClick={(e) => { e.stopPropagation(); deleteBoatPartner(partner.id); }}
-                            >
-                              Удалить
-                            </button>
+                            <div style={{ display: "flex", gap: "6px", alignItems: "center", flexShrink: 0 }}>
+                              <button
+                                style={{ fontSize: "12px", padding: "6px 12px", backgroundColor: "#3b82f6", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", whiteSpace: "nowrap" }}
+                                onClick={(e) => { e.stopPropagation(); startEditPartner(partner); }}
+                              >
+                                ✏️ Редактировать
+                              </button>
+                              <button
+                                style={{ fontSize: "12px", padding: "6px 12px", backgroundColor: "#fee2e2", color: "#dc2626", border: "none", borderRadius: "6px", cursor: "pointer", whiteSpace: "nowrap" }}
+                                onClick={(e) => { e.stopPropagation(); deleteBoatPartner(partner.id); }}
+                              >
+                                Удалить
+                              </button>
+                            </div>
                           </div>
                           {/* Expanded Content */}
                           {isExpanded && (
