@@ -1263,12 +1263,7 @@ export default function ImportPage() {
                 {/* Or create new partner */}
                 <div style={{borderTop: '1px solid #e5e7eb', paddingTop: '16px', textAlign: 'center'}}>
                   <span style={{color: '#666'}}>Партнёра нет в списке? </span>
-                  <button 
-                    onClick={() => setImportMode('full')}
-                    style={{color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline'}}
-                  >
-                    Создать нового партнёра
-                  </button>
+                  <a href="/partners" style={{color: '#2563eb', textDecoration: 'underline'}}>Создать нового партнёра</a>
                 </div>
               </div>
             ) : (
