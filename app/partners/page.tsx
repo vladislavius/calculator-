@@ -3,10 +3,14 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
-const getSupabase = () => createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-);
+let _supabase: any = null;
+const getSupabase = () => {
+  if (!_supabase) _supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+  );
+  return _supabase;
+};
 
 export default function PartnersPage() {
   const [activeTab, setActiveTab] = useState<'catering' | 'watersports' | 'boats'>('boats');
@@ -410,7 +414,9 @@ export default function PartnersPage() {
       // 3. Удаляем лодки
       await getSupabase().from('boats').delete().eq('partner_id', id);
     }
-    // 4. Удаляем партнёра
+    // 4. Удаляем partner_menus
+    await getSupabase().from('partner_menus').delete().eq('partner_id', id);
+    // 5. Удаляем партнёра
     const { error } = await getSupabase().from('partners').delete().eq('id', id);
     if (!error) {
       setMessage('Партнёр и все связанные данные удалены');
@@ -611,7 +617,7 @@ export default function PartnersPage() {
       
       // Load all menu sets for these menus
       if (menus && menus.length > 0) {
-        const menuIds = menus.map(m => m.id);
+        const menuIds = menus.map((m: any) => m.id);
         const { data: sets } = await getSupabase()
           .from('menu_sets')
           .select('*')

@@ -3,10 +3,14 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
-const getSupabase = () => createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-);
+let _supabase: any = null;
+const getSupabase = () => {
+  if (!_supabase) _supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+  );
+  return _supabase;
+};
 
 interface BoatFeature {
   name: string;
@@ -1162,6 +1166,11 @@ export default function ImportPage() {
                         {new Date(item.created_at).toLocaleString('ru-RU')} • 
                         {item.boats_added} лодок • {item.routes_added} маршрутов
                       </div>
+                      {item.raw_data?.boats?.length > 0 && (
+                        <div style={{fontSize: '11px', color: '#8b5cf6', marginTop: '2px'}}>
+                          🚢 {item.raw_data.boats.map((b: any) => b.name).join(', ')}
+                        </div>
+                      )}
                     </div>
                     <div style={{display: 'flex', gap: '8px'}}>
                       <button 
