@@ -28,5 +28,16 @@ textarea {
   }
   h2 { font-size: 18px !important; }
   h3 { font-size: 16px !important; }
-  button { min-height: 44px; }
+
+}
+
+@media (max-width: 768px) {
+  #toys, #services, #transfer, #fees, #food, #drinks, #included, #summary {
+    overflow-x: hidden;
+    word-break: break-word;
+  }
+  #toys > div, #services > div, #transfer > div {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
 }

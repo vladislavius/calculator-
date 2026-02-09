@@ -744,7 +744,7 @@ export default function Home() {
                 type="date" 
                 value={searchDate} 
                 onChange={(e) => setSearchDate(e.target.value)} 
-                style={{ width: '100%', padding: '14px 16px', border: '2px solid #e5e7eb', borderRadius: '12px', fontSize: '15px', backgroundColor: '#fafafa', outline: 'none', transition: 'all 0.2s' }}
+                style={{ width: '100%', padding: isMobile ? '10px 12px' : '14px 16px', border: isMobile ? '1px solid #e5e7eb' : '2px solid #e5e7eb', borderRadius: isMobile ? '8px' : '12px', fontSize: isMobile ? '13px' : '15px', backgroundColor: '#fafafa', outline: 'none', transition: 'all 0.2s' }}
               />
             </div>
 
@@ -757,7 +757,7 @@ export default function Home() {
                 onChange={(e) => { setDestination(e.target.value); setShowDestinationSuggestions(true); }}
                 onFocus={() => setShowDestinationSuggestions(true)}
                 onBlur={() => setTimeout(() => setShowDestinationSuggestions(false), 200)}
-                style={{ width: '100%', padding: '14px 16px', border: '2px solid #e5e7eb', borderRadius: '12px', fontSize: '15px', backgroundColor: '#fafafa', outline: 'none', transition: 'all 0.2s' }}
+                style={{ width: '100%', padding: isMobile ? '10px 12px' : '14px 16px', border: isMobile ? '1px solid #e5e7eb' : '2px solid #e5e7eb', borderRadius: isMobile ? '8px' : '12px', fontSize: isMobile ? '13px' : '15px', backgroundColor: '#fafafa', outline: 'none', transition: 'all 0.2s' }}
               />
               {showDestinationSuggestions && destination && allRoutes.filter(r => {
                     const search = destination.toLowerCase().replace(/\s+/g, '');
@@ -806,7 +806,7 @@ export default function Home() {
                 onChange={(e) => { setBoatNameSearch(e.target.value); setShowBoatSuggestions(true); }}
                 onFocus={() => setShowBoatSuggestions(true)}
                 onBlur={() => setTimeout(() => setShowBoatSuggestions(false), 200)}
-                style={{ width: '100%', padding: '14px 16px', border: '2px solid #e5e7eb', borderRadius: '12px', fontSize: '15px', backgroundColor: '#fafafa', outline: 'none', transition: 'all 0.2s' }}
+                style={{ width: '100%', padding: isMobile ? '10px 12px' : '14px 16px', border: isMobile ? '1px solid #e5e7eb' : '2px solid #e5e7eb', borderRadius: isMobile ? '8px' : '12px', fontSize: isMobile ? '13px' : '15px', backgroundColor: '#fafafa', outline: 'none', transition: 'all 0.2s' }}
               />
               {showBoatSuggestions && boatNameSearch && allBoats.filter(b => {
                     const search = boatNameSearch.toLowerCase().replace(/\s+/g, '');
@@ -842,7 +842,7 @@ export default function Home() {
               <select 
                 value={selectedPartnerFilter} 
                 onChange={(e) => setSelectedPartnerFilter(e.target.value)} 
-                style={{ width: '100%', padding: '14px 16px', border: '2px solid #e5e7eb', borderRadius: '12px', fontSize: '15px', backgroundColor: '#fafafa', cursor: 'pointer', outline: 'none' }}
+                style={{ width: '100%', padding: isMobile ? '10px 12px' : '14px 16px', border: isMobile ? '1px solid #e5e7eb' : '2px solid #e5e7eb', borderRadius: isMobile ? '8px' : '12px', fontSize: isMobile ? '13px' : '15px', backgroundColor: '#fafafa', cursor: 'pointer', outline: 'none' }}
               >
                 <option value="">Все партнёры</option>
                 {boatPartners.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -855,7 +855,7 @@ export default function Home() {
               <select 
                 value={boatType} 
                 onChange={(e) => setBoatType(e.target.value)} 
-                style={{ width: '100%', padding: '14px 16px', border: '2px solid #e5e7eb', borderRadius: '12px', fontSize: '15px', backgroundColor: '#fafafa', cursor: 'pointer', outline: 'none' }}
+                style={{ width: '100%', padding: isMobile ? '10px 12px' : '14px 16px', border: isMobile ? '1px solid #e5e7eb' : '2px solid #e5e7eb', borderRadius: isMobile ? '8px' : '12px', fontSize: isMobile ? '13px' : '15px', backgroundColor: '#fafafa', cursor: 'pointer', outline: 'none' }}
               >
                 {boatTypes.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
@@ -867,7 +867,7 @@ export default function Home() {
               <select 
                 value={timeSlot} 
                 onChange={(e) => setTimeSlot(e.target.value)} 
-                style={{ width: '100%', padding: '14px 16px', border: '2px solid #e5e7eb', borderRadius: '12px', fontSize: '15px', backgroundColor: '#fafafa', cursor: 'pointer', outline: 'none' }}
+                style={{ width: '100%', padding: isMobile ? '10px 12px' : '14px 16px', border: isMobile ? '1px solid #e5e7eb' : '2px solid #e5e7eb', borderRadius: isMobile ? '8px' : '12px', fontSize: isMobile ? '13px' : '15px', backgroundColor: '#fafafa', cursor: 'pointer', outline: 'none' }}
               >
                 {timeSlots.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
@@ -879,7 +879,7 @@ export default function Home() {
               <select
                 value={season}
                 onChange={(e) => setSeason(e.target.value)}
-                style={{ width: '100%', padding: '14px 16px', border: '2px solid #e5e7eb', borderRadius: '12px', fontSize: '15px', backgroundColor: '#fafafa', cursor: 'pointer', outline: 'none' }}
+                style={{ width: '100%', padding: isMobile ? '10px 12px' : '14px 16px', border: isMobile ? '1px solid #e5e7eb' : '2px solid #e5e7eb', borderRadius: isMobile ? '8px' : '12px', fontSize: isMobile ? '13px' : '15px', backgroundColor: '#fafafa', cursor: 'pointer', outline: 'none' }}
               >
                 {seasons.map(s => (
                   <option key={s.value} value={s.value}>{s.label}</option>
@@ -893,7 +893,7 @@ export default function Home() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                style={{ width: '100%', padding: '14px 16px', border: '2px solid #e5e7eb', borderRadius: '12px', fontSize: '15px', backgroundColor: '#fafafa', cursor: 'pointer', outline: 'none' }}
+                style={{ width: '100%', padding: isMobile ? '10px 12px' : '14px 16px', border: isMobile ? '1px solid #e5e7eb' : '2px solid #e5e7eb', borderRadius: isMobile ? '8px' : '12px', fontSize: isMobile ? '13px' : '15px', backgroundColor: '#fafafa', cursor: 'pointer', outline: 'none' }}
               > 
                 <option value="price_asc">Цена ↑</option>
                 <option value="price_desc">Цена ↓</option>
