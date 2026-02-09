@@ -1,30 +1,46 @@
 'use client';
 import { useState, useEffect } from 'react';
 
-const ADMIN_PIN = '2026';
-const STORAGE_KEY = 'admin_auth';
+const STORAGE_KEY = 'admin_session_token';
 
 export default function AdminGuard({ children }: { children: React.ReactNode }) {
   const [authorized, setAuthorized] = useState(false);
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
   const [checking, setChecking] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved === ADMIN_PIN) setAuthorized(true);
+    // If token exists, user was previously authorized this session
+    const token = localStorage.getItem(STORAGE_KEY);
+    if (token && token.length === 64) setAuthorized(true);
     setChecking(false);
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (pin === ADMIN_PIN) {
-      localStorage.setItem(STORAGE_KEY, pin);
-      setAuthorized(true);
-      setError('');
-    } else {
-      setError('Неверный пин-код');
-      setPin('');
+    setLoading(true);
+    setError('');
+
+    try {
+      const res = await fetch('/api/auth/verify-pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin })
+      });
+      const data = await res.json();
+
+      if (data.success && data.token) {
+        localStorage.setItem(STORAGE_KEY, data.token);
+        setAuthorized(true);
+      } else {
+        setError('Неверный пин-код');
+        setPin('');
+      }
+    } catch {
+      setError('Ошибка соединения с сервером');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -46,8 +62,8 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
             style={{ width: '100%', padding: '14px', fontSize: '18px', border: '2px solid #e2e8f0', borderRadius: '10px', textAlign: 'center', letterSpacing: '8px', boxSizing: 'border-box', outline: 'none' }}
           />
           {error && <p style={{ color: '#ef4444', margin: '12px 0 0', fontSize: '14px' }}>{error}</p>}
-          <button type="submit" style={{ width: '100%', marginTop: '16px', padding: '14px', fontSize: '16px', fontWeight: '600', color: 'white', background: '#2563eb', border: 'none', borderRadius: '10px', cursor: 'pointer' }}>
-            Войти
+          <button type="submit" disabled={loading} style={{ width: '100%', marginTop: '16px', padding: '14px', fontSize: '16px', fontWeight: '600', color: 'white', background: loading ? '#94a3b8' : '#2563eb', border: 'none', borderRadius: '10px', cursor: loading ? 'default' : 'pointer' }}>
+            {loading ? '⏳ Проверка...' : 'Войти'}
           </button>
         </form>
       </div>
