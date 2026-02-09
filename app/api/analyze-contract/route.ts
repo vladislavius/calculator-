@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
       apiKey: process.env.DEEPSEEK_API_KEY,
       baseURL: 'https://api.deepseek.com/v1'
     });
-    const { text, part } = await request.json();
+    const { text } = await request.json();
 
     const systemPrompt = `You are a strict boat charter contract parser. 
 
@@ -222,7 +222,7 @@ DO NOT ADD items like "Life Jackets", "Insurance", "Captain" unless EXPLICITLY l
       model: 'deepseek-chat',
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: part === 2 ? `Parse ONLY the BOATS, ROUTES and PRICING from this contract. Return JSON with keys: boats, pricing_rules. Skip partner info.\n\n${text.substring(0, 25000)}` : part === 1 ? `Parse ONLY the PARTNER INFO, INCLUDED items, NOT INCLUDED, EXTRAS, NOTES, and CONDITIONS from this contract. Return JSON with keys: partner, included, not_included, optional_extras, notes, children_policy, commission_info. Skip boat details and pricing.\n\n${text.substring(0, 25000)}` : `Parse this charter contract. Extract ONLY what is explicitly written:\n\n${text.substring(0, 25000)}` }
+        { role: 'user', content: `Parse this charter contract. Extract ONLY what is explicitly written:\n\n${text.substring(0, 25000)}` }
       ],
       temperature: 0.05,
       max_tokens: 8192,

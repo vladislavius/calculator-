@@ -212,43 +212,17 @@ export default function ImportPage() {
     setLoadingStatus('AI анализирует контракт...');
     
     try {
-      // Smart split: small contracts = 1 request, large = split
-      let ai: any;
-      if (contractText.length < 15000) {
-        // Small contract - single request
-        setLoadingStatus('AI анализирует контракт...');
-        const resp = await fetch('/api/analyze-contract', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: contractText })
-        });
-        const result = await resp.json();
-        if (!result.success) throw new Error(result.error || 'Analysis failed');
-        ai = result.data;
-      } else {
-        // Large contract - split into partner + boats
-        setLoadingStatus('AI анализирует партнёра и условия (1/2)...');
-        const resp1 = await fetch('/api/analyze-contract', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: contractText, part: 1 })
-        });
-        const result1 = await resp1.json();
-        if (!result1.success) throw new Error(result1.error || 'Part 1 failed');
-
-        setLoadingStatus('AI анализирует лодки и цены (2/2)...');
-        const resp2 = await fetch('/api/analyze-contract', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: contractText, part: 2 })
-        });
-        const result2 = await resp2.json();
-        if (!result2.success) throw new Error(result2.error || 'Part 2 failed');
-        ai = { ...result1.data, ...result2.data };
-      }
+      setLoadingStatus('AI анализирует контракт...');
+      const response = await fetch('/api/analyze-contract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: contractText })
+      });
+      const result = await response.json();
+      if (!result.success) throw new Error(result.error || 'Analysis failed');
+      const ai = result.data;
       const partner = ai.partner || {};
-      
-      // Build features from AI included and extras
+
       const aiFeatures = createFeaturesFromAI(ai.included || [], ai.optional_extras || []);
       
       // Helper to detect category - improved version
