@@ -277,8 +277,8 @@ export default function Home() {
   useEffect(() => {
     storeSet({
       searchDate, results, loading, showAgentPrice, markupPercent, lang,
-      selectedBoat, boatOptions, loadingOptions, routeFees, staffServices,
-      selectedExtras, cateringOrders, drinkOrders,
+      selectedBoat, boatOptions, loadingOptions, routeFees, staffServices, boatDrinks, drinkOrders,
+      selectedExtras, cateringOrders,
       selectedToys, selectedServices, selectedFees, selectedPartnerWatersports,
       transferPickup, transferDropoff, transferPrice, transferMarkup,
       landingEnabled, landingFee, defaultParkFeeEnabled, defaultParkFee,
@@ -288,8 +288,8 @@ export default function Home() {
       markupMode, customPrices, customNotes,
     });
   }, [searchDate, results, loading, showAgentPrice, markupPercent, lang,
-      selectedBoat, boatOptions, loadingOptions, routeFees, staffServices,
-      selectedExtras, cateringOrders, drinkOrders,
+      selectedBoat, boatOptions, loadingOptions, routeFees, staffServices, boatDrinks, drinkOrders,
+      selectedExtras, cateringOrders,
       selectedToys, selectedServices, selectedFees, selectedPartnerWatersports,
       transferPickup, transferDropoff, transferPrice, transferMarkup,
       landingEnabled, landingFee, defaultParkFeeEnabled, defaultParkFee,
@@ -1029,15 +1029,7 @@ export default function Home() {
                 lang={lang}
               />
 
-              <DrinksSection
-                boatDrinks={boatDrinks}
-                drinkOrders={drinkOrders}
-                addDrink={addDrink}
-                removeDrink={removeDrink}
-                setDrinkOrders={setDrinkOrders}
-                getPrice={getPrice}
-                setPrice={setPrice}
-              />
+              <DrinksSection addDrink={addDrink} removeDrink={removeDrink} />
 
               <FeesSection
                 routeName={selectedBoat?.route_name || ''}

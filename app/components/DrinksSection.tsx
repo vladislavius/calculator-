@@ -1,6 +1,6 @@
 'use client';
 
-import { DrinkOrder } from '../lib/types';
+import { useCharterStore } from '../store/useCharterStore';
 
 interface BoatDrink {
   id: number;
@@ -8,19 +8,21 @@ interface BoatDrink {
   name_ru?: string;
   price: number;
   included: boolean;
+  category?: string;
 }
 
 interface DrinksSectionProps {
-  boatDrinks: BoatDrink[];
-  drinkOrders: DrinkOrder[];
   addDrink: (drink: BoatDrink) => void;
   removeDrink: (drinkId: string) => void;
-  setDrinkOrders: (orders: DrinkOrder[]) => void;
-  getPrice: (key: string, defaultPrice: number) => number;
-  setPrice: (key: string, value: number) => void;
 }
 
-export default function DrinksSection({ boatDrinks, drinkOrders, addDrink, removeDrink, setDrinkOrders, getPrice, setPrice }: DrinksSectionProps) {
+export default function DrinksSection({ addDrink, removeDrink }: DrinksSectionProps) {
+  const boatDrinks = useCharterStore(s => s.boatDrinks);
+  const drinkOrders = useCharterStore(s => s.drinkOrders);
+  const set = useCharterStore(s => s.set);
+  const getPrice = useCharterStore(s => s.getPrice);
+  const setPrice = useCharterStore(s => s.setPrice);
+
   return (
     <div id="drinks" style={{ marginBottom: '24px', padding: '20px', backgroundColor: '#fdf4ff', borderRadius: '16px', border: '1px solid #e9d5ff' }}>
       <h3 style={{ margin: '0 0 16px', fontSize: '18px', fontWeight: '600', color: '#7c3aed' }}>🍺 НАПИТКИ И АЛКОГОЛЬ</h3>
@@ -62,9 +64,9 @@ export default function DrinksSection({ boatDrinks, drinkOrders, addDrink, remov
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     {order && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <button onClick={() => setDrinkOrders(drinkOrders.map(d => String(d.drinkId) === String(drink.id) ? {...d, quantity: Math.max(1, d.quantity - 1)} : d))} style={{ width: '24px', height: '24px', border: '1px solid #7c3aed', borderRadius: '4px', backgroundColor: 'white', cursor: 'pointer' }}>−</button>
+                        <button onClick={() => set({ drinkOrders: drinkOrders.map(d => String(d.drinkId) === String(drink.id) ? {...d, quantity: Math.max(1, d.quantity - 1)} : d) })} style={{ width: '24px', height: '24px', border: '1px solid #7c3aed', borderRadius: '4px', backgroundColor: 'white', cursor: 'pointer' }}>−</button>
                         <span style={{ minWidth: '30px', textAlign: 'center', fontWeight: '600' }}>{order.quantity}</span>
-                        <button onClick={() => setDrinkOrders(drinkOrders.map(d => String(d.drinkId) === String(drink.id) ? {...d, quantity: d.quantity + 1} : d))} style={{ width: '24px', height: '24px', border: '1px solid #7c3aed', borderRadius: '4px', backgroundColor: 'white', cursor: 'pointer' }}>+</button>
+                        <button onClick={() => set({ drinkOrders: drinkOrders.map(d => String(d.drinkId) === String(drink.id) ? {...d, quantity: d.quantity + 1} : d) })} style={{ width: '24px', height: '24px', border: '1px solid #7c3aed', borderRadius: '4px', backgroundColor: 'white', cursor: 'pointer' }}>+</button>
                       </div>
                     )}
                     <span style={{ fontWeight: '600', color: '#7c3aed', fontSize: '14px', minWidth: '80px', textAlign: 'right' }}>
