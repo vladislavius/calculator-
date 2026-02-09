@@ -397,7 +397,10 @@ export default function ImportPage() {
       // Each route + each applicable pricing = one row
       const routes: any[] = [];
       
-      if (aiRoutes.length > 0 && pricingRules.length > 0) {
+      // Skip global route generation if boats already have routes with prices
+      const boatsHaveRoutes = boats.some((b: any) => b.routes && b.routes.length > 0 && b.routes.some((r: any) => r.base_price > 0));
+
+      if (!boatsHaveRoutes && aiRoutes.length > 0 && pricingRules.length > 0) {
         // Cross-reference routes with pricing
         for (const route of aiRoutes) {
           const matchingPrices = pricingRules.filter((p: any) => 
