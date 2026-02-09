@@ -1,5 +1,7 @@
 'use client';
 
+import { useCharterStore } from '../store/useCharterStore';
+
 interface StaffService {
   id: number;
   name_en: string;
@@ -7,22 +9,12 @@ interface StaffService {
   price: number | null;
 }
 
-interface SelectedService {
-  id: number;
-  name: string;
-  nameRu?: string;
-  price: number;
-}
+export default function ServicesSection({ toggleService }: { toggleService: (service: StaffService) => void }) {
+  const staffServices = useCharterStore(s => s.staffServices);
+  const selectedServices = useCharterStore(s => s.selectedServices);
+  const getPrice = useCharterStore(s => s.getPrice);
+  const setPrice = useCharterStore(s => s.setPrice);
 
-interface ServicesSectionProps {
-  staffServices: StaffService[];
-  selectedServices: SelectedService[];
-  toggleService: (service: StaffService) => void;
-  getPrice: (key: string, defaultPrice: number) => number;
-  setPrice: (key: string, value: number) => void;
-}
-
-export default function ServicesSection({ staffServices, selectedServices, toggleService, getPrice, setPrice }: ServicesSectionProps) {
   return (
     <div id="services" style={{ marginBottom: '24px', padding: '20px', backgroundColor: '#faf5ff', borderRadius: '16px', border: '1px solid #e9d5ff' }}>
       <h3 style={{ margin: '0 0 16px', fontSize: '18px', fontWeight: '600', color: '#7c3aed' }}>👨‍💼 ДОПОЛНИТЕЛЬНЫЙ ПЕРСОНАЛ</h3>
@@ -30,7 +22,7 @@ export default function ServicesSection({ staffServices, selectedServices, toggl
       {staffServices.length > 0 ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
           {staffServices.map(service => {
-            const selected = selectedServices.find((s) => s.id === service.id);
+            const selected = selectedServices.find((s: any) => s.id === service.id);
             return (
               <div key={service.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', backgroundColor: selected ? '#f3e8ff' : 'white', borderRadius: '10px', border: selected ? '2px solid #a855f7' : '1px solid #e5e7eb' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

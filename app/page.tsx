@@ -276,14 +276,27 @@ export default function Home() {
   // Sync local state → store for components that read from store
   useEffect(() => {
     storeSet({
-      searchDate,
-      results,
-      loading,
-      showAgentPrice,
-      markupPercent,
-      lang,
+      searchDate, results, loading, showAgentPrice, markupPercent, lang,
+      selectedBoat, boatOptions, loadingOptions, routeFees, staffServices,
+      selectedExtras, cateringOrders, drinkOrders,
+      selectedToys, selectedServices, selectedFees, selectedPartnerWatersports,
+      transferPickup, transferDropoff, transferPrice, transferMarkup,
+      landingEnabled, landingFee, defaultParkFeeEnabled, defaultParkFee,
+      defaultParkFeeAdults, defaultParkFeeChildren, corkageFee,
+      extraAdults, children3to11, childrenUnder3, adults,
+      customAdultPrice, customChildPrice, boatMarkup, fixedMarkup,
+      markupMode, customPrices, customNotes,
     });
-  }, [searchDate, results, loading, showAgentPrice, markupPercent, lang, storeSet]);
+  }, [searchDate, results, loading, showAgentPrice, markupPercent, lang,
+      selectedBoat, boatOptions, loadingOptions, routeFees, staffServices,
+      selectedExtras, cateringOrders, drinkOrders,
+      selectedToys, selectedServices, selectedFees, selectedPartnerWatersports,
+      transferPickup, transferDropoff, transferPrice, transferMarkup,
+      landingEnabled, landingFee, defaultParkFeeEnabled, defaultParkFee,
+      defaultParkFeeAdults, defaultParkFeeChildren, corkageFee,
+      extraAdults, children3to11, childrenUnder3, adults,
+      customAdultPrice, customChildPrice, boatMarkup, fixedMarkup,
+      markupMode, customPrices, customNotes, storeSet]);
 
   useEffect(() => {
     const loadPartnersData = async () => {
@@ -989,11 +1002,7 @@ export default function Home() {
               </div>
 
               {/* ==================== INCLUDED SECTION ==================== */}
-              <IncludedSection
-                boatOptions={boatOptions}
-                routeFees={routeFees}
-                loadingOptions={loadingOptions}
-              />
+              <IncludedSection />
 
               <FoodSection
                 selectedBoat={selectedBoat}
@@ -1070,13 +1079,7 @@ export default function Home() {
               />
 
               {/* ==================== STAFF SERVICES SECTION ==================== */}
-              <ServicesSection
-                staffServices={staffServices}
-                selectedServices={selectedServices}
-                toggleService={toggleService}
-                getPrice={getPrice}
-                setPrice={setPrice}
-              />
+              <ServicesSection toggleService={toggleService} />
 
               <TransferSection
                 transferDirection={transferDirection}
@@ -1102,23 +1105,7 @@ export default function Home() {
                 setPrice={setPrice}
               />
 
-              <SummarySection
-                selectedBoat={selectedBoat}
-                totals={totals}
-                markupMode={markupMode}
-                setMarkupMode={setMarkupMode}
-                boatMarkup={boatMarkup}
-                setBoatMarkup={setBoatMarkup}
-                fixedMarkup={fixedMarkup}
-                setFixedMarkup={setFixedMarkup}
-                extraAdults={extraAdults}
-                children3to11={children3to11}
-                customPrices={customPrices}
-                customNotes={customNotes}
-                setCustomNotes={setCustomNotes}
-                generatePDF={generatePDF}
-                generateWhatsApp={generateWhatsApp}
-              />
+              <SummarySection generatePDF={generatePDF} generateWhatsApp={generateWhatsApp} />
 
             </div>
 

@@ -1,21 +1,12 @@
 'use client';
 
-import { BoatOption } from '../lib/types';
+import { useCharterStore } from '../store/useCharterStore';
 
-interface RouteFee {
-  id: number;
-  name_en: string;
-  price_per_person: number;
-  mandatory: boolean;
-}
+export default function IncludedSection() {
+  const boatOptions = useCharterStore(s => s.boatOptions);
+  const routeFees = useCharterStore(s => s.routeFees);
+  const loadingOptions = useCharterStore(s => s.loadingOptions);
 
-interface IncludedSectionProps {
-  boatOptions: BoatOption[];
-  routeFees: RouteFee[];
-  loadingOptions: boolean;
-}
-
-export default function IncludedSection({ boatOptions, routeFees, loadingOptions }: IncludedSectionProps) {
   return (
     <>
       <div id="included" style={{ marginBottom: '24px', padding: '20px', backgroundColor: '#ecfdf5', borderRadius: '16px', border: '2px solid #86efac' }}>
