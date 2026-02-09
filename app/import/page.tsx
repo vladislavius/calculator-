@@ -212,20 +212,27 @@ export default function ImportPage() {
     setLoadingStatus('AI анализирует контракт...');
     
     try {
-      const response = await fetch('/api/analyze-contract', {
+      // Split into 2 requests to fit token limits
+      setLoadingStatus('AI анализирует партнёра и условия (1/2)...');
+      const resp1 = await fetch('/api/analyze-contract', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: contractText, fileName: 'contract.txt' })
+        body: JSON.stringify({ text: contractText, part: 1 })
       });
+      const result1 = await resp1.json();
+      if (!result1.success) throw new Error(result1.error || 'Part 1 failed');
 
-      const result = await response.json();
-      
-      if (!result.success) {
-        throw new Error(result.error || 'Analysis failed');
-      }
+      setLoadingStatus('AI анализирует лодки и цены (2/2)...');
+      const resp2 = await fetch('/api/analyze-contract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: contractText, part: 2 })
+      });
+      const result2 = await resp2.json();
+      if (!result2.success) throw new Error(result2.error || 'Part 2 failed');
 
-      // Extract ALL data from AI - preserve everything
-      const ai = result.data;
+      // Merge both results
+      const ai = { ...result1.data, ...result2.data };
       const partner = ai.partner || {};
       
       // Build features from AI included and extras
