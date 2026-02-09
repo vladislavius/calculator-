@@ -1,13 +1,11 @@
 'use client';
 
-import { Lang } from '../lib/i18n';
+import { useCharterStore } from '../store/useCharterStore';
 
-interface HeaderProps {
-  lang: Lang;
-  setLang: (lang: Lang) => void;
-}
+export default function Header() {
+  const lang = useCharterStore(s => s.lang);
+  const set = useCharterStore(s => s.set);
 
-export default function Header({ lang, setLang }: HeaderProps) {
   return (
     <header style={{ background: 'linear-gradient(135deg, #1e40af 0%, #7c3aed 100%)', color: 'white', padding: '20px 24px' }}>
       <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -25,8 +23,8 @@ export default function Header({ lang, setLang }: HeaderProps) {
             👥 Партнёры
           </a>
           <div style={{ display: "flex", backgroundColor: "rgba(0,0,0,0.2)", borderRadius: "8px", padding: "2px" }}>
-            <button onClick={() => setLang("ru")} style={{ padding: "6px 12px", borderRadius: "6px", border: "none", cursor: "pointer", fontSize: "13px", fontWeight: "600", backgroundColor: lang === "ru" ? "white" : "transparent", color: lang === "ru" ? "#1e40af" : "rgba(255,255,255,0.7)" }}>RU</button>
-            <button onClick={() => setLang("en")} style={{ padding: "6px 12px", borderRadius: "6px", border: "none", cursor: "pointer", fontSize: "13px", fontWeight: "600", backgroundColor: lang === "en" ? "white" : "transparent", color: lang === "en" ? "#1e40af" : "rgba(255,255,255,0.7)" }}>EN</button>
+            <button onClick={() => set({ lang: "ru" })} style={{ padding: "6px 12px", borderRadius: "6px", border: "none", cursor: "pointer", fontSize: "13px", fontWeight: "600", backgroundColor: lang === "ru" ? "white" : "transparent", color: lang === "ru" ? "#1e40af" : "rgba(255,255,255,0.7)" }}>RU</button>
+            <button onClick={() => set({ lang: "en" })} style={{ padding: "6px 12px", borderRadius: "6px", border: "none", cursor: "pointer", fontSize: "13px", fontWeight: "600", backgroundColor: lang === "en" ? "white" : "transparent", color: lang === "en" ? "#1e40af" : "rgba(255,255,255,0.7)" }}>EN</button>
           </div>
         </div>
       </div>

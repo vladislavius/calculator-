@@ -8,6 +8,7 @@ import { calculateTotals } from './lib/calculateTotals';
 import { generatePDFContent } from './lib/generatePDF';
 import { generateWhatsAppMessage } from './lib/generateWhatsApp';
 import Header from './components/Header';
+import { useCharterStore } from './store/useCharterStore';
 import SearchResults from './components/SearchResults';
 import IncludedSection from './components/IncludedSection';
 import FoodSection from './components/FoodSection';
@@ -58,6 +59,10 @@ const seasonLabel = (s: string) => {
 };
 
 export default function Home() {
+  // Store
+  const store = useCharterStore();
+  const { set: storeSet } = store;
+
   // Search state
   const [searchDate, setSearchDate] = useState('');
 
@@ -268,6 +273,18 @@ export default function Home() {
     tomorrow.setDate(tomorrow.getDate() + 1);
     setSearchDate(tomorrow.toISOString().split('T')[0]);
   }, []);
+  // Sync local state → store for components that read from store
+  useEffect(() => {
+    storeSet({
+      searchDate,
+      results,
+      loading,
+      showAgentPrice,
+      markupPercent,
+      lang,
+    });
+  }, [searchDate, results, loading, showAgentPrice, markupPercent, lang, storeSet]);
+
   useEffect(() => {
     const loadPartnersData = async () => {
       try {
@@ -729,7 +746,7 @@ export default function Home() {
   // ==================== RENDER ====================
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc' }}>
-<Header lang={lang} setLang={setLang} />
+<Header />
 
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px' }}>
         {/* Search Panel - Modern UI */}
@@ -942,14 +959,7 @@ export default function Home() {
           </div>
         </div>
 
-        <SearchResults
-          results={results}
-          loading={loading}
-          searchDate={searchDate}
-          showAgentPrice={showAgentPrice}
-          markupPercent={markupPercent}
-          onSelectBoat={openBoatDetails}
-        />
+        <SearchResults onSelectBoat={openBoatDetails} />
       </div>
 
       {/* ==================== MODAL ==================== */}
