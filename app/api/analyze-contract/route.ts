@@ -281,7 +281,8 @@ DO NOT ADD items like "Life Jackets", "Insurance", "Captain" unless EXPLICITLY l
       }
       
       console.log('All JSON fix attempts failed. Content sample:', str.substring(0, 1000));
-      throw new Error('Failed to parse AI response as JSON');
+      const err: any = new Error('Failed to parse AI response as JSON - sample: ' + str.substring(0, 300));
+      throw err;
     };
 
     const data = fixJson(content)
