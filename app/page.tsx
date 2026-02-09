@@ -406,54 +406,45 @@ export default function Home() {
   };
 
   // ==================== OPEN BOAT DETAILS ====================
+  const openBoatDetailsRef = { current: 0 }; // race condition guard
   const openBoatDetails = async (boat: SearchResult) => {
+    const requestId = ++openBoatDetailsRef.current;
     setSelectedBoat(boat);
     setLoadingOptions(true);
     resetSelections();
 
     try {
-      // Load boat drinks from partner
-      const { data: drinksData } = await supabase
-        .from('boat_drinks')
-        .select('*')
-        .eq('partner_id', boat.partner_id);
-      setBoatDrinks(drinksData || []);
-      
-      // Load route fees for this route
-      const { data: routeData } = await supabase
-        .from('routes')
-        .select('id')
-        .ilike('name', '%' + boat.route_name.split(' ')[0] + '%')
-        .limit(1)
-        .single();
-      
-      if (routeData) {
-        const { data: feesData } = await supabase
-          .from('route_fees')
-          .select('*')
-          .eq('route_id', routeData.id);
+      // Load all data in parallel
+      const [drinksRes, routeRes, menuRes, optionsRes] = await Promise.all([
+        supabase.from('boat_drinks').select('*').eq('partner_id', boat.partner_id),
+        supabase.from('routes').select('id').ilike('name', '%' + boat.route_name.split(' ')[0] + '%').limit(1).single(),
+        supabase.from('boat_menu').select('*').or('partner_id.eq.' + boat.partner_id + ',boat_id.eq.' + boat.boat_id),
+        supabase.from('boat_options').select('id, status, price, price_per, quantity_included, notes, available, options_catalog (name_en, name_ru, code, category_id)').eq('boat_id', boat.boat_id).eq('available', true),
+      ]);
+
+      // Abort if user clicked another boat while loading
+      if (requestId !== openBoatDetailsRef.current) return;
+
+      setBoatDrinks(drinksRes.data || []);
+
+      if (routeRes.data) {
+        const { data: feesData } = await supabase.from('route_fees').select('*').eq('route_id', routeRes.data.id);
+        if (requestId !== openBoatDetailsRef.current) return;
         setRouteFees(feesData || []);
-        
-        // Don't auto-add fees - let user select them
-        // Fees are now optional, user can add them manually
         setSelectedFees([]);
       }
+
+      // Boat menu (old system)
+      let menuItems = menuRes.data || [];
       
-      // Load boat menu (old system)
-      const { data: menuData } = await supabase
-        .from('boat_menu')
-        .select('*')
-        .or('partner_id.eq.' + boat.partner_id + ',boat_id.eq.' + boat.boat_id);
-      setBoatMenu(menuData || []);
-      
-      // Load partner menu sets (new system)
+      // Partner menu sets (new system)
       const partnerMenuIds = partnerMenus
         .filter(pm => pm.partner_id === boat.partner_id && (pm.boat_id === null || pm.boat_id === boat.boat_id))
         .map(pm => pm.id);
       
       if (partnerMenuIds.length > 0) {
         const relevantSets = partnerMenuSets.filter(ms => partnerMenuIds.includes(ms.menu_id));
-        setBoatMenu(prev => [...prev, ...relevantSets.map(s => ({
+        menuItems = [...menuItems, ...relevantSets.map(s => ({
           id: 'set_' + s.id,
           name_en: s.name,
           name_ru: s.name_ru,
@@ -464,31 +455,13 @@ export default function Home() {
           dishes: s.dishes,
           dishes_ru: s.dishes_ru,
           from_partner_menu: true
-        }))]);
+        }))];
       }
+      setBoatMenu(menuItems);
 
-      const { data, error } = await supabase
-        .from('boat_options')
-        .select(`
-          id,
-          status,
-          price,
-          price_per,
-          quantity_included,
-          notes,
-          available,
-          options_catalog (
-            name_en,
-            name_ru,
-            code,
-            category_id
-          )
-        `)
-        .eq('boat_id', boat.boat_id)
-        .eq('available', true);
-      
-      // Transform data to expected format
-      const transformed = (data || []).map((item: any) => ({
+      // Transform options
+      if (optionsRes.error) throw optionsRes.error;
+      const transformed = (optionsRes.data || []).map((item: any) => ({
         id: item.id,
         option_name: item.options_catalog?.name_en || 'Unknown',
         option_name_ru: item.options_catalog?.name_ru || '',
@@ -500,16 +473,13 @@ export default function Home() {
         quantity_included: item.quantity_included || 0,
         notes: item.notes || ''
       }));
-      
-      
-      if (error) throw error;
       setBoatOptions(transformed);
-      return;
-      // Already set above
     } catch (err) {
       console.error('Error loading options:', err);
     } finally {
-      setLoadingOptions(false);
+      if (requestId === openBoatDetailsRef.current) {
+        setLoadingOptions(false);
+      }
     }
   };
 

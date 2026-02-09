@@ -370,19 +370,39 @@ export default function ImportPage() {
         for (const r of boat.routes) {
           const s = (r.season || '').toLowerCase().trim();
 
-          if (
-            !s ||
-            s === 'all' ||
-            s === 'peak' ||
-            s.includes('national') ||
-            s.includes('chinese') ||
-            s.includes('worker') ||
-            s.includes('holiday') ||
-            s.includes('labour') ||
-            s.includes('labor')
-          ) {
+          // Map known season aliases to canonical values
+          if (!s) {
+            r.season = 'high'; // default if empty
+          } else if (s === 'all' || s === 'all_seasons' || s === 'year_round') {
+            r.season = 'all_seasons';
+          } else if (s === 'peak' || s === 'peak_season') {
+            r.season = 'peak';
+          } else if (s === 'high' || s === 'high_season') {
             r.season = 'high';
+          } else if (s === 'low' || s === 'low_season' || s === 'green') {
+            r.season = 'low';
+          } else if (s.includes('chinese') && s.includes('new')) {
+            r.season = 'chinese_new_year';
+          } else if (s.includes('national') && s.includes('china') || s.includes('chinese') && s.includes('national')) {
+            r.season = 'chinese_national_day';
+          } else if (s.includes('labour') || s.includes('labor') || s.includes('worker')) {
+            r.season = 'international_labour_day';
+          } else if (s.includes('nov') && s.includes('dec')) {
+            r.season = 'nov_dec';
+          } else if (s.includes('dec') && s.includes('feb')) {
+            r.season = 'dec_feb';
+          } else if (s.includes('jan') && s.includes('feb')) {
+            r.season = 'jan_feb';
+          } else if (s.includes('mar') && s.includes('apr')) {
+            r.season = 'mar_apr';
+          } else if (s.includes('may') && s.includes('jun')) {
+            r.season = 'may_jun';
+          } else if (s.includes('jul') && s.includes('aug')) {
+            r.season = 'jul_aug';
+          } else if (s.includes('sep') && s.includes('oct')) {
+            r.season = 'sep_oct';
           }
+          // else keep as-is
         }
 
         // Step 2: Deduplicate by composite key
@@ -391,7 +411,7 @@ export default function ImportPage() {
           const key = [
             (r.destination || '').toLowerCase().trim(),
             r.duration_hours || 0,
-            (r.season || 'high').toLowerCase(),
+            (r.season || 'high'),
             r.base_price || 0
           ].join('|');
 
