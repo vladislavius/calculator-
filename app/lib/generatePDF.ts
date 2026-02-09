@@ -43,7 +43,7 @@ export function generatePDFContent(p: PDFParams): string {
   const pdfChildPrice = p.customChildPrice !== null ? p.customChildPrice : (selectedBoat.child_price_3_11 || Math.round((selectedBoat.extra_pax_price || 0) * 0.5));
   const pdfExtraGuestsSurcharge = p.extraAdults * pdfAdultPrice + p.children3to11 * pdfChildPrice;
 
-  const finalTotal = boatPriceForClient + pdfExtraGuestsSurcharge + (totals.extras || 0) + totals.catering + totals.drinks + totals.toys + totals.services + totals.fees + totals.transfer + (totals.partnerWatersports || 0);
+  const finalTotal = totals.totalClient || (boatPriceForClient + pdfExtraGuestsSurcharge + (totals.extras || 0) + totals.catering + totals.drinks + totals.toys + totals.services + totals.fees + totals.transfer + (totals.partnerWatersports || 0));
 
   const includedOptions = p.boatOptions
     .filter(opt => opt.status === 'included')
@@ -51,7 +51,7 @@ export function generatePDFContent(p: PDFParams): string {
     .filter(Boolean);
 
   const cateringItems = p.cateringOrders.map(order => {
-    const price = Math.round((order.pricePerPerson || 0) * (order.persons || 1) * (1 + p.boatMarkup / 100));
+    const price = Math.round((order.pricePerPerson || 0) * (order.persons || 1));
     return '<tr><td>' + order.packageName + '</td><td>' + order.persons + ' чел</td><td>' + price.toLocaleString() + ' THB</td></tr>';
   }).join('');
 
@@ -120,7 +120,7 @@ export function generatePDFContent(p: PDFParams): string {
     '<div class="header"><div class="logo">' + t('pdf.company', lang) + '</div><div class="subtitle">' + t('pdf.footer', lang) + '</div><div class="date">' + new Date().toLocaleDateString(lang === 'en' ? 'en-US' : 'ru-RU', { day: '2-digit', month: 'long', year: 'numeric' }) + '</div></div>' +
     '<div class="yacht-info"><div class="yacht-name">' + (selectedBoat.boat_name || 'Яхта') + '</div><div class="yacht-details"><div class="yacht-detail"><div class="yacht-detail-label">' + t('pdf.route', lang) + '</div><div class="yacht-detail-value">' + (selectedBoat.route_name || 'По запросу') + '</div></div><div class="yacht-detail"><div class="yacht-detail-label">' + t('pdf.duration', lang) + '</div><div class="yacht-detail-value">' + (selectedBoat.duration || (lang === 'en' ? '8 hours' : '8 часов')) + '</div></div><div class="yacht-detail"><div class="yacht-detail-label">' + t('pdf.guestsLabel', lang) + '</div><div class="yacht-detail-value">' + p.totalGuests + ' (' + t('pdf.adults', lang) + ': ' + (p.adults + p.extraAdults) + ', ' + (lang === 'en' ? 'children 3-11' : 'дети 3-11') + ': ' + p.children3to11 + ', ' + t('wa.under3', lang) + ': ' + p.childrenUnder3 + ')</div></div><div class="yacht-detail"><div class="yacht-detail-label">' + t('pdf.boatPrice', lang) + '</div><div class="yacht-detail-value">' + boatPriceForClient.toLocaleString() + ' THB</div></div></div></div>' +
     (includedOptions.length > 0 ? '<div class="section"><div class="section-title">' + t('pdf.included', lang) + '</div><div class="included-list">' + includedOptions.map(opt => '<span class="included-item">' + opt + '</span>').join('') + '</div></div>' : '') +
-    (p.selectedExtras.length > 0 ? '<div class="section"><div class="section-title">' + t('pdf.extras', lang) + '</div><table><tr><th>' + t('pdf.name', lang) + '</th><th>' + t('pdf.qty', lang) + '</th><th>' + t('pdf.amount', lang) + '</th></tr>' + p.selectedExtras.map(e => '<tr><td>' + (lang === 'en' ? e.name : (e.nameRu || e.name)) + '</td><td>' + e.quantity + ' шт</td><td>' + Math.round(e.price * e.quantity * (1 + p.boatMarkup / 100)).toLocaleString() + ' THB</td></tr>').join('') + '</table></div>' : '') +
+    (p.selectedExtras.length > 0 ? '<div class="section"><div class="section-title">' + t('pdf.extras', lang) + '</div><table><tr><th>' + t('pdf.name', lang) + '</th><th>' + t('pdf.qty', lang) + '</th><th>' + t('pdf.amount', lang) + '</th></tr>' + p.selectedExtras.map(e => '<tr><td>' + (lang === 'en' ? e.name : (e.nameRu || e.name)) + '</td><td>' + e.quantity + ' шт</td><td>' + Math.round(e.price * e.quantity).toLocaleString() + ' THB</td></tr>').join('') + '</table></div>' : '') +
     dishesHtml +
     (cateringItems ? '<div class="section"><div class="section-title">' + t('pdf.catering', lang) + '</div>' + conditionsHtml + '<table><tr><th>' + t('pdf.name', lang) + '</th><th>' + t('pdf.qty', lang) + '</th><th>' + t('pdf.amount', lang) + '</th></tr>' + cateringItems + '</table></div>' : '') +
     (drinkItems ? '<div class="section"><div class="section-title">' + t('pdf.drinks', lang) + '</div><table><tr><th>' + t('pdf.name', lang) + '</th><th>' + t('pdf.qty', lang) + '</th><th>' + t('pdf.amount', lang) + '</th></tr>' + drinkItems + '</table></div>' : '') +

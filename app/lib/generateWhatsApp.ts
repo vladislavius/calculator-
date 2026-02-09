@@ -77,7 +77,7 @@ export function generateWhatsAppMessage(p: WhatsAppParams): string {
   if (p.cateringOrders.length > 0) {
     message += '\n*' + t('wa.catering', L) + '*\n';
     p.cateringOrders.forEach(order => {
-      const priceWithMarkup = Math.round(order.pricePerPerson * (1 + p.boatMarkup / 100));
+      const priceWithMarkup = order.pricePerPerson;
       message += '  - ' + order.packageName + ' (' + order.persons + ' ' + t('wa.persons', L) + ') - ' + (priceWithMarkup * order.persons).toLocaleString() + ' THB\n';
     });
   }
