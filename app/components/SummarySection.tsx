@@ -10,7 +10,8 @@ interface SummarySectionProps {
 
 export default function SummarySection({ generatePDF, generateWhatsApp }: SummarySectionProps) {
   const s = useCharterStore();
-  const selectedBoat = s.selectedBoat!;
+  const selectedBoat = s.selectedBoat;
+  if (!selectedBoat) return null;
   const totals = calculateTotals({
     selectedBoat: s.selectedBoat, selectedExtras: s.selectedExtras,
     cateringOrders: s.cateringOrders, drinkOrders: s.drinkOrders,
