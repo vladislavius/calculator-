@@ -1,20 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 import { SearchResult, BoatOption, SelectedExtra, CateringOrder, DrinkOrder, TransferOrder } from './lib/types';
 import { t, Lang } from "./lib/i18n";import { inputStyle, labelStyle, cardStyle, tabStyle } from './lib/styles';
 
-let _supabase: ReturnType<typeof createClient> | null = null;
-const getSupabase = (): any => {
-  if (!_supabase) {
-    _supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-    );
-  }
-  return _supabase;
-};
 
 // ==================== MOCK DATA ====================
 // CATERING_PACKAGES moved to database (catering_menu table)
@@ -266,44 +256,44 @@ export default function Home() {
     const loadPartnersData = async () => {
       try {
       // Load catering partners & menu
-      const { data: cpData } = await getSupabase().from('catering_partners').select('*');
+      const { data: cpData } = await supabase.from('catering_partners').select('*');
       if (cpData) setCateringPartners(cpData);
       
-      const { data: cmData } = await getSupabase().from('catering_menu').select('*');
+      const { data: cmData } = await supabase.from('catering_menu').select('*');
       if (cmData) setCateringMenu(cmData);
       
       // Load watersports partners & catalog
-      const { data: wpData } = await getSupabase().from('watersports_partners').select('*');
+      const { data: wpData } = await supabase.from('watersports_partners').select('*');
       if (wpData) setWatersportsPartners(wpData);
       
-      const { data: wcData } = await getSupabase().from('watersports_catalog').select('*');
+      const { data: wcData } = await supabase.from('watersports_catalog').select('*');
       if (wcData) setWatersportsCatalog(wcData);
       
       // Load transfer options
-      const { data: toData } = await getSupabase().from('transfer_options').select('*');
+      const { data: toData } = await supabase.from('transfer_options').select('*');
       if (toData) setTransferOptionsDB(toData);
       
       // Load staff services
-      const { data: ssData } = await getSupabase().from('staff_services').select('*');
+      const { data: ssData } = await supabase.from('staff_services').select('*');
       if (ssData) setStaffServices(ssData);
       
       // Load boat partners
-      const { data: bpData } = await getSupabase().from('partners').select('*').order('name');
+      const { data: bpData } = await supabase.from('partners').select('*').order('name');
       if (bpData) setBoatPartners(bpData);
 
       // Load all boats for autocomplete
-      const { data: boatsData } = await getSupabase().from('boats').select('id, name, partner_id').eq('active', true).order('name');
+      const { data: boatsData } = await supabase.from('boats').select('id, name, partner_id').eq('active', true).order('name');
       if (boatsData) setAllBoats(boatsData);
 
       // Load all routes for autocomplete
-      const { data: routesData } = await getSupabase().from('routes').select('id, name_en, name_ru').order('name_en');
+      const { data: routesData } = await supabase.from('routes').select('id, name_en, name_ru').order('name_en');
       if (routesData) setAllRoutes(routesData);
 
       // Load partner menus (new system)
-      const { data: pmData } = await getSupabase().from('partner_menus').select('*').eq('active', true);
+      const { data: pmData } = await supabase.from('partner_menus').select('*').eq('active', true);
       if (pmData) setPartnerMenus(pmData);
       
-      const { data: msData } = await getSupabase().from('menu_sets').select('*').eq('active', true);
+      const { data: msData } = await supabase.from('menu_sets').select('*').eq('active', true);
       if (msData) setPartnerMenuSets(msData);
       } catch (err) {
         console.error('Ошибка загрузки данных:', err);
@@ -316,7 +306,7 @@ export default function Home() {
   const handleSearch = async () => {
     setLoading(true);
     try {
-      const { data, error } = await getSupabase().rpc('search_available_boats', {
+      const { data, error } = await supabase.rpc('search_available_boats', {
         p_date: searchDate,
         p_guests: totalGuests,
         p_time_slot: timeSlot,
@@ -377,14 +367,14 @@ export default function Home() {
 
     try {
       // Load boat drinks from partner
-      const { data: drinksData } = await getSupabase()
+      const { data: drinksData } = await supabase
         .from('boat_drinks')
         .select('*')
         .eq('partner_id', boat.partner_id);
       setBoatDrinks(drinksData || []);
       
       // Load route fees for this route
-      const { data: routeData } = await getSupabase()
+      const { data: routeData } = await supabase
         .from('routes')
         .select('id')
         .ilike('name', '%' + boat.route_name.split(' ')[0] + '%')
@@ -392,7 +382,7 @@ export default function Home() {
         .single();
       
       if (routeData) {
-        const { data: feesData } = await getSupabase()
+        const { data: feesData } = await supabase
           .from('route_fees')
           .select('*')
           .eq('route_id', routeData.id);
@@ -404,7 +394,7 @@ export default function Home() {
       }
       
       // Load boat menu (old system)
-      const { data: menuData } = await getSupabase()
+      const { data: menuData } = await supabase
         .from('boat_menu')
         .select('*')
         .or('partner_id.eq.' + boat.partner_id + ',boat_id.eq.' + boat.boat_id);
@@ -431,7 +421,7 @@ export default function Home() {
         }))]);
       }
 
-      const { data, error } = await getSupabase()
+      const { data, error } = await supabase
         .from('boat_options')
         .select(`
           id,

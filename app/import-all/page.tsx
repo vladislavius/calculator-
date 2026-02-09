@@ -1,16 +1,8 @@
 'use client';
 import AdminGuard from '../components/AdminGuard';
 import { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 
-let _supabase: any = null;
-const getSupabase = () => {
-  if (!_supabase) _supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-  );
-  return _supabase;
-};
 
 type ImportType = 'boats' | 'catering' | 'watersports' | 'decorations';
 
@@ -37,14 +29,14 @@ export default function UnifiedImportPage() {
 
   const loadAllData = async () => {
     const [bp, b, cp, cm, wp, wc, dp, dc] = await Promise.all([
-      getSupabase().from('partners').select('*').order('name'),
-      getSupabase().from('boats').select('*').order('name'),
-      getSupabase().from('catering_partners').select('*').order('name'),
-      getSupabase().from('catering_menu').select('*').order('name_en'),
-      getSupabase().from('watersports_partners').select('*').order('name'),
-      getSupabase().from('watersports_catalog').select('*').order('name_en'),
-      getSupabase().from('decoration_partners').select('*').order('name'),
-      getSupabase().from('decoration_catalog').select('*').order('name_en'),
+      supabase.from('partners').select('*').order('name'),
+      supabase.from('boats').select('*').order('name'),
+      supabase.from('catering_partners').select('*').order('name'),
+      supabase.from('catering_menu').select('*').order('name_en'),
+      supabase.from('watersports_partners').select('*').order('name'),
+      supabase.from('watersports_catalog').select('*').order('name_en'),
+      supabase.from('decoration_partners').select('*').order('name'),
+      supabase.from('decoration_catalog').select('*').order('name_en'),
     ]);
     if (bp.data) setBoatPartners(bp.data);
     if (b.data) setBoats(b.data);
@@ -70,7 +62,7 @@ export default function UnifiedImportPage() {
   const createPartner = async () => {
     if (!newPartnerName.trim()) return;
     const table = activeType === 'catering' ? 'catering_partners' : activeType === 'watersports' ? 'watersports_partners' : 'decoration_partners';
-    const { data, error } = await getSupabase().from(table).insert({ name: newPartnerName.trim() }).select().single();
+    const { data, error } = await supabase.from(table).insert({ name: newPartnerName.trim() }).select().single();
     if (error) { showMessage('Ошибка: ' + error.message, 'error'); }
     else { showMessage('Партнёр создан!'); setNewPartnerName(''); setSelectedPartnerId(data.id); loadAllData(); }
   };
@@ -125,7 +117,7 @@ export default function UnifiedImportPage() {
            activeType === 'watersports' ? { price_per_hour: item.price || item.price_per_hour || 0, price_per_day: item.price_per_day || (item.price || 0) * 5 } :
            { price: item.price || 0, category: item.category || 'other' })
       }));
-      const { error } = await getSupabase().from(table).insert(items);
+      const { error } = await supabase.from(table).insert(items);
       if (error) throw error;
       showMessage('Сохранено ' + items.length + ' позиций!');
       setParsedItems([]); setContractText(''); loadAllData();
@@ -134,7 +126,7 @@ export default function UnifiedImportPage() {
   };
 
   const deleteItem = async (table: string, id: number) => {
-    await getSupabase().from(table).delete().eq('id', id);
+    await supabase.from(table).delete().eq('id', id);
     showMessage('Удалено'); loadAllData();
   };
 
@@ -145,7 +137,7 @@ export default function UnifiedImportPage() {
     if (activeType === 'catering') updateData.price_per_person = editingItem.price_per_person;
     else if (activeType === 'watersports') { updateData.price_per_hour = editingItem.price_per_hour; updateData.price_per_day = editingItem.price_per_day; }
     else updateData.price = editingItem.price;
-    const { error } = await getSupabase().from(table).update(updateData).eq('id', editingItem.id);
+    const { error } = await supabase.from(table).update(updateData).eq('id', editingItem.id);
     if (error) { showMessage('Ошибка: ' + error.message, 'error'); }
     else { showMessage('Сохранено!'); setEditingItem(null); loadAllData(); }
   };

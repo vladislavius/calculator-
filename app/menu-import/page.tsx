@@ -1,12 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 
-const getSupabase = () => createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-);
 
 interface MenuSet {
   name: string;
@@ -42,12 +38,12 @@ export default function MenuImportPage() {
   }, []);
 
   const loadPartners = async () => {
-    const { data } = await getSupabase().from('partners').select('id, name').order('name');
+    const { data } = await supabase.from('partners').select('id, name').order('name');
     if (data) setPartners(data);
   };
 
   const loadBoats = async (partnerId: number) => {
-    const { data } = await getSupabase().from('boats').select('id, name').eq('partner_id', partnerId).order('name');
+    const { data } = await supabase.from('boats').select('id, name').eq('partner_id', partnerId).order('name');
     if (data) setBoats(data);
   };
 
@@ -102,7 +98,7 @@ export default function MenuImportPage() {
 
     try {
       // Check if menu already exists
-      const { data: existingMenu } = await getSupabase()
+      const { data: existingMenu } = await supabase
         .from('partner_menus')
         .select('id')
         .eq('partner_id', selectedPartnerId)
@@ -113,9 +109,9 @@ export default function MenuImportPage() {
 
       if (existingMenu) {
         // Delete old sets and update menu
-        await getSupabase().from('menu_sets').delete().eq('menu_id', existingMenu.id);
+        await supabase.from('menu_sets').delete().eq('menu_id', existingMenu.id);
         
-        const { error: updateError } = await getSupabase()
+        const { error: updateError } = await supabase
           .from('partner_menus')
           .update({
             name: parsedMenu.menu_name || 'Menu',
@@ -131,7 +127,7 @@ export default function MenuImportPage() {
         menuId = existingMenu.id;
       } else {
         // Create new menu
-        const { data: menu, error: menuError } = await getSupabase()
+        const { data: menu, error: menuError } = await supabase
           .from('partner_menus')
           .insert({
             partner_id: selectedPartnerId,
@@ -153,7 +149,7 @@ export default function MenuImportPage() {
       // Create sets
       for (let i = 0; i < parsedMenu.sets.length; i++) {
         const set = parsedMenu.sets[i];
-        await getSupabase().from('menu_sets').insert({
+        await supabase.from('menu_sets').insert({
           menu_id: menuId,
           name: set.name,
           name_ru: set.name_ru,
