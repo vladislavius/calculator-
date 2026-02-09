@@ -21,6 +21,7 @@ import FeesSection from './components/FeesSection';
 import ToysSection from './components/ToysSection';
 import TransferSection from './components/TransferSection';
 import SummarySection from './components/SummarySection';
+import { useIsMobile } from './hooks/useIsMobile';
 
 
 // ==================== MOCK DATA ====================
@@ -62,6 +63,7 @@ export default function Home() {
   // Store
   const store = useCharterStore();
   const { set: storeSet } = store;
+  const isMobile = useIsMobile();
 
   // Search state
   const [searchDate, setSearchDate] = useState('');
@@ -731,9 +733,9 @@ export default function Home() {
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc' }}>
 <Header />
 
-      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px' }}>
+      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: isMobile ? '8px' : '24px' }}>
         {/* Search Panel - Modern UI */}
-        <div style={{ marginBottom: '24px', padding: '24px', backgroundColor: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+        <div style={{ marginBottom: isMobile ? '12px' : '24px', padding: isMobile ? '12px' : '24px', backgroundColor: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'flex-end' }}>
             {/* Date */}
             <div style={{ flex: '0.9', minWidth: '140px' }}>
@@ -947,12 +949,12 @@ export default function Home() {
 
       {/* ==================== MODAL ==================== */}
       {selectedBoat && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-          <div style={{ backgroundColor: 'white', borderRadius: '16px', width: '100%', maxWidth: '1200px', maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: isMobile ? '0' : '20px' }}>
+          <div style={{ backgroundColor: 'white', borderRadius: isMobile ? '0' : '16px', width: '100%', maxWidth: isMobile ? '100%' : '1200px', maxHeight: isMobile ? '100%' : '90vh', height: isMobile ? '100%' : 'auto', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
             
             <ModalHeader closeModal={closeModal} />
 
-            <div style={{ flex: 1, overflow: 'auto', padding: '24px' }}>
+            <div style={{ flex: 1, overflow: 'auto', WebkitOverflowScrolling: 'touch', padding: isMobile ? '10px' : '24px' }}>
               {/* Boat info header */}
               <div style={{ marginBottom: '20px', padding: '20px', background: 'linear-gradient(135deg, #1e40af 0%, #7c3aed 100%)', borderRadius: '16px', color: 'white' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
