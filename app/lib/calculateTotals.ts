@@ -50,6 +50,11 @@ export interface CalcResult {
   totalClient: number;
 }
 
+// Helper: get custom price or fallback to original
+const cp = (prices: Record<string, number>, key: string, original: number): number => {
+  return prices[key] !== undefined ? prices[key] : original;
+};
+
 export function calculateTotals(p: CalcParams): CalcResult {
   if (!p.selectedBoat) {
     return { agent: 0, client: 0, childrenDiscount: 0, extras: 0, catering: 0, drinks: 0, toys: 0, services: 0, transfer: 0, fees: 0, partnerWatersports: 0, markup: 0, totalAgent: 0, totalClient: 0 };
@@ -60,9 +65,24 @@ export function calculateTotals(p: CalcParams): CalcResult {
 
   const extrasTotal = p.selectedExtras.reduce((sum, e) => sum + (e.price * e.quantity), 0);
   const cateringTotal = p.cateringOrders.reduce((sum, c) => sum + (c.pricePerPerson * c.persons), 0);
-  const drinksTotal = p.drinkOrders.reduce((sum, d: any) => sum + ((d.price || 0) * (d.quantity || 1)), 0) + p.corkageFee;
-  const toysTotal = p.selectedToys.reduce((sum, t: any) => sum + ((t.pricePerHour || 0) * (t.hours || 1) + (t.pricePerDay || 0) * (t.days || 0)) * (t.quantity || 1), 0);
-  const servicesTotal = p.selectedServices.reduce((sum, s: any) => sum + ((s.price || 0) * (s.quantity || 1)), 0);
+  const drinksTotal = p.drinkOrders.reduce((sum, d: any) => {
+    const price = cp(p.customPrices, 'drink_' + d.drinkId, d.price || 0);
+    return sum + (price * (d.quantity || 1));
+  }, 0) + p.corkageFee;
+  const toysTotal = p.selectedToys.reduce((sum, t: any) => {
+    const price = cp(p.customPrices, 'opt_' + t.id, t.pricePerHour || t.pricePerDay || 0);
+    const hours = t.hours || 1;
+    const days = t.days || 0;
+    // If customPrice set, use it as hourly rate (matching UI behavior)
+    if (p.customPrices['opt_' + t.id] !== undefined) {
+      return sum + (price * hours) * (t.quantity || 1);
+    }
+    return sum + ((t.pricePerHour || 0) * hours + (t.pricePerDay || 0) * days) * (t.quantity || 1);
+  }, 0);
+  const servicesTotal = p.selectedServices.reduce((sum, s: any) => {
+    const price = cp(p.customPrices, 'service_' + s.id, s.price || 0);
+    return sum + (price * (s.quantity || 1));
+  }, 0);
 
   let transferTotal = p.transferPickup.price + p.transferDropoff.price;
   if (p.transferPrice > 0) {
@@ -77,7 +97,10 @@ export function calculateTotals(p: CalcParams): CalcResult {
     return sum + (pricePerHour * hours) + (pricePerDay * days);
   }, 0);
 
-  const feesTotal = p.selectedFees.reduce((sum, f: any) => sum + ((f.pricePerPerson || 0) * (f.adults + f.children)), 0)
+  const feesTotal = p.selectedFees.reduce((sum, f: any) => {
+    const price = cp(p.customPrices, 'fee_' + f.id, f.pricePerPerson || 0);
+    return sum + (price * (f.adults + f.children));
+  }, 0)
     + (p.landingEnabled ? p.landingFee : 0)
     + (p.defaultParkFeeEnabled ? p.defaultParkFee * (p.defaultParkFeeAdults + p.defaultParkFeeChildren) : 0);
 
