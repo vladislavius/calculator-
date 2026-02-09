@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { SearchResult, BoatOption, SelectedExtra, CateringOrder, DrinkOrder, TransferOrder } from './lib/types';
 import { t, Lang } from "./lib/i18n";import { inputStyle, labelStyle, cardStyle, tabStyle } from './lib/styles';
-import { calculateTotals } from './lib/calculateTotals';
 
 
 // ==================== MOCK DATA ====================
@@ -496,24 +495,96 @@ export default function Home() {
   };
 
   // ==================== CALCULATIONS ====================
-  const calcTotals = () => calculateTotals({
-    selectedBoat, selectedExtras, cateringOrders, drinkOrders,
-    selectedToys, selectedServices, selectedFees, selectedPartnerWatersports,
-    transferPickup, transferDropoff, transferPrice, transferMarkup,
-    landingEnabled, landingFee, defaultParkFeeEnabled, defaultParkFee,
-    defaultParkFeeAdults, defaultParkFeeChildren, corkageFee,
-    extraAdults, children3to11, childrenUnder3, adults,
-    customAdultPrice, customChildPrice, boatMarkup, fixedMarkup,
-    markupMode, markupPercent, customPrices,
-  });
+  const calculateTotals = () => {
+    if (!selectedBoat) return { agent: 0, client: 0, extras: 0, catering: 0, drinks: 0, toys: 0, services: 0, transfer: 0, fees: 0, total: 0 };
 
-  const totals = calcTotals();
+    const baseAgent = Number(selectedBoat.calculated_agent_total) || Number(selectedBoat.base_price) || 0;
+    const baseClient = Number(selectedBoat.calculated_total) || Number(selectedBoat.base_price) || 0;
+
+    // Extras from boat options
+    const extrasTotal = selectedExtras.reduce((sum, e) => sum + (e.price * e.quantity), 0);
+
+    // Catering
+    const cateringTotal = cateringOrders.reduce((sum, c) => sum + (c.pricePerPerson * c.persons), 0);
+
+    // Drinks (from boat_drinks DB)
+    const drinksTotal = drinkOrders.reduce((sum, d: any) => sum + ((d.price || 0) * (d.quantity || 1)), 0) + corkageFee;
+
+    // Water toys (from watersports_catalog DB)
+    const toysTotal = selectedToys.reduce((sum, t: any) => {
+      return sum + ((t.pricePerHour || 0) * (t.hours || 1) + (t.pricePerDay || 0) * (t.days || 0)) * (t.quantity || 1);
+    }, 0);
+
+    // Services (from staff_services DB)
+    const servicesTotal = selectedServices.reduce((sum, s: any) => {
+      return sum + ((s.price || 0) * (s.quantity || 1));
+    }, 0);
+
+    // Transfer (include DB transfer with markup)
+    let transferTotal = transferPickup.price + transferDropoff.price;
+    if (transferPrice > 0) {
+      transferTotal += Math.round(transferPrice * (1 + transferMarkup / 100));
+    }
+    
+    // Partner watersports (with individual markup)
+    // Partner watersports - NO markup, added at base price
+    const partnerWatersportsTotal = selectedPartnerWatersports.reduce((sum, w) => {
+      const pricePerHour = Number(w.pricePerHour) || 0;
+      const pricePerDay = Number(w.pricePerDay) || 0;
+      const hours = Number(w.hours) || 0;
+      const days = Number(w.days) || 0;
+      const base = (pricePerHour * hours) + (pricePerDay * days);
+      return sum + base;
+    }, 0);
+
+    // Park fees (from DB) + landing fee + default park fee
+    const feesTotal = selectedFees.reduce((sum, f: any) => {
+      return sum + ((f.pricePerPerson || 0) * (f.adults + f.children));
+    }, 0) + (landingEnabled ? landingFee : 0) + (defaultParkFeeEnabled ? defaultParkFee * (defaultParkFeeAdults + defaultParkFeeChildren) : 0);
+
+    // Children discount removed: child pricing already handled via childPriceToUse (default 50% of extra_pax_price)
+
+    const allExtras = extrasTotal + cateringTotal + drinksTotal + toysTotal + servicesTotal + transferTotal + feesTotal + partnerWatersportsTotal;
+
+    
+
+    // Apply boat markup to base price for client
+    // Extra guests surcharge (use custom prices if set)
+    const adultPriceToUse = customAdultPrice !== null ? customAdultPrice : (selectedBoat?.extra_pax_price || 0);
+    const childPriceToUse = customChildPrice !== null ? customChildPrice : (selectedBoat?.child_price_3_11 || Math.round((selectedBoat?.extra_pax_price || 0) * 0.5));
+    const extraAdultsSurcharge = extraAdults * adultPriceToUse;
+    const children3to11Surcharge = children3to11 * childPriceToUse;
+    const extraGuestsSurcharge = extraAdultsSurcharge + children3to11Surcharge;
+    // Markup ONLY on boat base price, extra guests added without markup
+    const boatPriceWithMarkup = markupMode === "fixed" ? baseClient + fixedMarkup : Math.round(baseClient * (1 + boatMarkup / 100));
+    const totalBeforeMarkup = boatPriceWithMarkup + extraGuestsSurcharge + allExtras ;
+    const markupAmount = markupPercent > 0 ? Math.round(totalBeforeMarkup * markupPercent / 100) : 0;
+    
+    return {
+      agent: baseAgent,
+      client: baseClient,
+      childrenDiscount: 0,
+      extras: extrasTotal,
+      catering: cateringTotal,
+      drinks: drinksTotal,
+      toys: toysTotal,
+      services: servicesTotal,
+      transfer: transferTotal,
+      fees: feesTotal,
+      partnerWatersports: partnerWatersportsTotal,
+      markup: markupAmount,
+      totalAgent: baseAgent + allExtras ,
+      totalClient: totalBeforeMarkup + markupAmount
+    };
+  };
+
+  const totals = calculateTotals();
 
   
   // ==================== PDF GENERATION ====================
   const generatePDF = () => {
     if (!selectedBoat) return;
-    const totals = calcTotals();
+    const totals = calculateTotals();
     console.log("PDF lang:", lang, "t test:", t("total.boatBase", lang));    console.log("PDF lang:", lang, "t test:", t("total.boatBase", lang));    console.log("PDF lang:", lang, "t test:", t("total.boatBase", lang));    const baseBoatPrice = Number(selectedBoat?.calculated_total) || Number(selectedBoat?.base_price) || 0; const boatPriceForClient = markupMode === "fixed" ? baseBoatPrice + fixedMarkup : Math.round(baseBoatPrice * (1 + boatMarkup / 100));
     
     // Extra guests surcharge for PDF
@@ -615,7 +686,7 @@ export default function Home() {
   // WhatsApp message generation
   const generateWhatsApp = () => {
     if (!selectedBoat) return;
-    const totals = calcTotals();
+    const totals = calculateTotals();
     const baseBoatPrice = Number(selectedBoat?.calculated_total) || Number(selectedBoat?.base_price) || 0;
     const boatPriceForClient = markupMode === "fixed" ? baseBoatPrice + fixedMarkup : Math.round(baseBoatPrice * (1 + boatMarkup / 100));
     const adultPriceToUse = customAdultPrice !== null ? customAdultPrice : (selectedBoat?.extra_pax_price || 0);
