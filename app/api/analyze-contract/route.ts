@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
+const MAX_CONTRACT_LENGTH = 25000;
+
 export async function POST(request: NextRequest) {
   try {
     if (!process.env.DEEPSEEK_API_KEY) {
@@ -12,6 +14,10 @@ export async function POST(request: NextRequest) {
       baseURL: 'https://api.deepseek.com/v1'
     });
     const { text } = await request.json();
+
+    // Report truncation to client
+    const wasTruncated = text.length > MAX_CONTRACT_LENGTH;
+    const processedText = text.substring(0, MAX_CONTRACT_LENGTH);
 
     const systemPrompt = `You are a strict boat charter contract parser. 
 
@@ -222,7 +228,7 @@ DO NOT ADD items like "Life Jackets", "Insurance", "Captain" unless EXPLICITLY l
       model: 'deepseek-chat',
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: `Parse this charter contract. Extract ONLY what is explicitly written:\n\n${text.substring(0, 25000)}` }
+        { role: 'user', content: `Parse this charter contract. Extract ONLY what is explicitly written:\n\n${processedText}` }
       ],
       temperature: 0.05,
       max_tokens: 8192,
@@ -294,9 +300,47 @@ DO NOT ADD items like "Life Jackets", "Insurance", "Captain" unless EXPLICITLY l
       throw err;
     };
 
-    const data = fixJson(content)
+    const data = fixJson(content);
 
-    return NextResponse.json({ success: true, data });
+    // Validate AI response structure
+    const warnings: string[] = [];
+
+    if (wasTruncated) {
+      warnings.push(`Контракт обрезан: ${text.length.toLocaleString()} → ${MAX_CONTRACT_LENGTH.toLocaleString()} символов. Данные в конце документа могли быть потеряны.`);
+    }
+
+    if (!data.partner && !data.boats?.length) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'AI не смог распознать данные контракта. Попробуйте другой формат.' 
+      }, { status: 422 });
+    }
+
+    if (!data.boats || data.boats.length === 0) {
+      warnings.push('Лодки не найдены в контракте');
+    } else {
+      const boatsWithoutRoutes = data.boats.filter((b: any) => !b.routes || b.routes.length === 0);
+      if (boatsWithoutRoutes.length > 0) {
+        warnings.push(`Лодки без маршрутов: ${boatsWithoutRoutes.map((b: any) => b.name).join(', ')}`);
+      }
+      const boatsWithoutPrices = data.boats.filter((b: any) => 
+        b.routes?.length > 0 && b.routes.every((r: any) => !r.base_price || r.base_price === 0)
+      );
+      if (boatsWithoutPrices.length > 0) {
+        warnings.push(`Лодки без цен: ${boatsWithoutPrices.map((b: any) => b.name).join(', ')}`);
+      }
+    }
+
+    if (!data.partner?.name) {
+      warnings.push('Имя партнёра не распознано');
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      data,
+      warnings: warnings.length > 0 ? warnings : undefined,
+      truncated: wasTruncated || undefined
+    });
   } catch (error: any) {
     console.error('API Error:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

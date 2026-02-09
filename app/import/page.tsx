@@ -212,6 +212,12 @@ export default function ImportPage() {
       });
       const result = await response.json();
       if (!result.success) throw new Error(result.error || 'Analysis failed');
+
+      // Show warnings from AI validation
+      if (result.warnings && result.warnings.length > 0) {
+        const warningText = result.warnings.join("\n• ");
+        alert("⚠️ Предупреждения:\n• " + warningText);
+      }
       const ai = result.data;
       const partner = ai.partner || {};
 
